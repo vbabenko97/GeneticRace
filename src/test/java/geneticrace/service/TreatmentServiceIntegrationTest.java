@@ -4,7 +4,6 @@ import geneticrace.model.FirstStageData;
 import geneticrace.model.Patient;
 import geneticrace.model.SecondStageData;
 import geneticrace.repository.PatientDataPort;
-import geneticrace.repository.PatientDataPort.SecondStageResult;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

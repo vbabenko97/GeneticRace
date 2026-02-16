@@ -12,7 +12,7 @@
 
 ---
 
-## ABSTRACT
+## Abstract
 
 The development of Machine Learning methods and approaches offers enormous growth opportunities in the Healthcare field. One of the most exciting challenges in this field is the automation of clinical treatment selection for patient state optimization. Using necessary medical data and the application of Machine Learning methods (like the Genetic Algorithm and the Analytic Hierarchy Process) provides a solution to such a challenge. Research presented in this paper gives the general approach to solve the clinical treatment selection task, which can be used for any type of disease. The distinguishing feature of this approach is that clinical treatment is tailored to the patient's initial state, thus making treatment personalized. The article also presents a comparison of the different classification methods used to model patient indicators after treatment. Additionally, special attention was paid to the possibilities and potential of using the developed approach in real Healthcare challenges and tasks. 
 
@@ -276,24 +276,24 @@ The resulting models are mathematical equations for patient indicators after tre
 | Classification algorithm | Accuracy | Sensitivity | Specificity | MCC |
 | --- | --- | --- | --- | --- |
 | **Training sample (80%)** |  |  |  |  |
-| LDA | 89.6% | 0.89 | 0.7 | 0.611 |
+| LDA | 89.6% | 0.890 | 0.700 | 0.611 |
 | Logistic Regression | 73.7% | 0.742 | 0.779 | 0.321 |
 | Naïve Bayes | 74.4% | 0.807 | 0.758 | 0.429 |
 | Linear SVM | 79.8% | 0.801 | 0.838 | 0.474 |
-| RBF SVM | 100% | 1 | 1 | 1 |
+| RBF SVM | 100% | 1.000 | 1.000 | 1.000 |
 | GPC | 98.6% | 0.949 | 0.715 | 0.679 |
-| RFC | 99.9% | 0.996 | 0.998 | — |
-| AdaBoost | 98.7% | 0.985 | 0.98 | 0.97 |
+| RFC | 99.9% | 1.000 | 0.996 | 0.998 |
+| AdaBoost | 98.7% | 0.985 | 0.980 | 0.970 |
 | MLP | 87.1% | 0.862 | 0.391 | 0.323 |
 | **Test sample (20%)** |  |  |  |  |
 | LDA | 87.7 | 0.859 | 0.673 | 0.508 |
 | Logistic Regression | 71.6 | 0.722 | 0.717 | 0.288 |
-| Naïve Bayes | 75.3 | 0.811 | 0.74 | 0.412 |
-| Linear SVM | 77.1 | 0.77 | 0.82 | 0.431 |
-| RBF SVM | 99.2 | 0.987 | 0.99 | 0.982 |
+| Naïve Bayes | 75.3 | 0.811 | 0.740 | 0.412 |
+| Linear SVM | 77.1 | 0.770 | 0.820 | 0.431 |
+| RBF SVM | 99.2 | 0.987 | 0.990 | 0.982 |
 | GPC | 97.6 | 0.936 | 0.728 | 0.661 |
 | RFC | 99.1 | 0.995 | 0.972 | 0.975 |
-| AdaBoost | 96.4 | 0.957 | 0.95 | 0.918 |
+| AdaBoost | 96.4 | 0.957 | 0.950 | 0.918 |
 | MLP | 86.3 | 0.856 | 0.413 | 0.314 |
 
 **Table 3: Final State Indicators Classification Results ("DB2")** 
@@ -305,19 +305,19 @@ The resulting models are mathematical equations for patient indicators after tre
 | Logistic Regression | 65.6 | 0.656 | 0.665 | 0.242 |
 | Naïve Bayes | 54.5 | 0.321 | 0.901 | 0.215 |
 | Linear SVM | 68.6 | 0.699 | 0.691 | 0.307 |
-| RBF SVM | 100 | 1 | 1 | 1 |
-| GPC | 100 | 1 | 1 | 1 |
+| RBF SVM | 100 | 1.000 | 1.000 | 1.000 |
+| GPC | 100 | 1.000 | 1.000 | 1.000 |
 | RFC | 99.9 | 0.999 | 0.996 | 0.997 |
 | AdaBoost | 95.1 | 0.917 | 0.972 | 0.891 |
 | MLP | 90.1 | 0.892 | 0.604 | 0.511 |
 | **Test sample (20%)** |  |  |  |  |
-| LDA | 76.4 | 0.6 | 0.646 | 0.267 |
-| Logistic Regression | 63 | 0.625 | 0.616 | 0.192 |
+| LDA | 76.4 | 0.600 | 0.646 | 0.267 |
+| Logistic Regression | 63.0 | 0.625 | 0.616 | 0.192 |
 | Naïve Bayes | 55.4 | 0.364 | 0.843 | 0.172 |
 | Linear SVM | 64.1 | 0.644 | 0.618 | 0.204 |
-| RBF SVM | 99.6 | 1 | 0.989 | 0.992 |
-| GPC | 98.5 | 1 | 0.972 | 0.967 |
-| RFC | 99 | 0.991 | 0.971 | 0.973 |
+| RBF SVM | 99.6 | 1.000 | 0.989 | 0.992 |
+| GPC | 98.5 | 1.000 | 0.972 | 0.967 |
+| RFC | 99.0 | 0.991 | 0.971 | 0.973 |
 | AdaBoost | 89.8 | 0.852 | 0.886 | 0.748 |
 | MLP | 88.8 | 0.846 | 0.598 | 0.46 |
 
