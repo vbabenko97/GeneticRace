@@ -3,7 +3,7 @@
 Desktop decision-support prototype (JavaFX) for optimizing treatment strategies for patients with congenital heart defects, using GMDH, AHP, and Genetic Algorithms.
 
 [![CI](https://github.com/vbabenko97/GeneticRace/actions/workflows/ci.yml/badge.svg)](https://github.com/vbabenko97/GeneticRace/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](license)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 > **Disclaimer:** This is a research prototype developed as a bachelor thesis at Igor Sikorsky Kyiv Polytechnic Institute. It is **not** a medical device and is **not** intended for clinical decision-making. Use for educational and research purposes only.
 
@@ -98,7 +98,7 @@ src/test/java/geneticrace/
 
    Default passwords match the username (legacy plain-text; auto-migrated to bcrypt on first login).
 
-On first launch, the app creates `~/.geneticrace/` and copies `HeartDefects_sample.db` to `~/.geneticrace/HeartDefects.db`. Python scripts are extracted to `~/.geneticrace/scripts/`.
+On first launch, the app creates `~/.geneticrace/` and copies `HeartDefects_sample.db` to `~/.geneticrace/HeartDefects.db`. Python scripts are extracted to `~/.geneticrace/scripts/`. On Windows, `~` resolves to `%USERPROFILE%` (e.g. `C:\Users\<name>\.geneticrace\`).
 
 > **Note:** `mvn package` builds a JAR, but JavaFX apps require module path setup to run standalone. Use `mvn javafx:run` for development. For distribution, see the `native` Maven profile which uses jpackage.
 
@@ -130,7 +130,7 @@ Java invokes Python scripts as subprocesses, passing JSON via `--input` CLI argu
 {"xList": [120.0, 3.5, 4.2, 2.0, 1.0, 1.8, 2.1, 3.0, 4.5, 1.0, 2.0, 1.0]}
 ```
 
-`xList` contains clinical values: 12 for FirstStage, 9 for SecondStage. Categorical values are pre-encoded (e.g. "Yes"=1.0, "No"=2.0 for FirstStage; reversed for SecondStage to match training data).
+`xList` contains clinical values: 12 for FirstStage, 9 for SecondStage. Categorical values are pre-encoded from Ukrainian: "Так" (yes)=1.0, "Ні" (no)=2.0 for FirstStage; reversed ("Ні"=1.0, "Так"=2.0) for SecondStage to match training data encoding.
 
 **Success response** (Python stdout, exit code 0):
 ```json
@@ -142,16 +142,16 @@ Java invokes Python scripts as subprocesses, passing JSON via `--input` CLI argu
 
 `treatments` is a list of up to 5 treatment strategy vectors (9 values each). `complications` is the predicted complication vector (1 = complication absent, 2 = present).
 
-**Error response** (Python stderr, exit code 1):
+**Error response** (Python → stderr, exit code 1):
 ```json
 {"error": "Expected 12 input values, got 9"}
 ```
 
-Java reads stderr as a raw error message and wraps it in a `TreatmentError.SCRIPT_FAILED` result.
+Python writes JSON to stderr, but Java reads stderr as raw text (does not parse it) and surfaces it in a `TreatmentError.SCRIPT_FAILED` result.
 
 ## License
 
-Apache License 2.0. See [license](license) for details.
+Apache License 2.0. See [LICENSE](LICENSE) for details.
 
 ## Sources
 
