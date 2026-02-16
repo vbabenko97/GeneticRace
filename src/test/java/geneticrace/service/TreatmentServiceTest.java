@@ -130,8 +130,6 @@ class TreatmentServiceTest {
 
     @Test
     void firstAndSecondStageHaveReversedEncodings() {
-        // FirstStage: Так=1.0, Ні=2.0
-        // SecondStage: Ні=1.0, Так=2.0
         assertEquals(1.0, service.parseFirstStageValue("Так"));
         assertEquals(2.0, service.parseFirstStageValue("Ні"));
         assertEquals(1.0, service.parseSecondStageValue("Ні"));
@@ -156,6 +154,7 @@ class TreatmentServiceTest {
         TreatmentService.TreatmentResult result = service.calculateFirstStage(1);
 
         assertTrue(result.isSuccess());
+        assertNull(result.errorType);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Double>> captor = ArgumentCaptor.forClass(List.class);
@@ -177,7 +176,42 @@ class TreatmentServiceTest {
         TreatmentService.TreatmentResult result = service.calculateFirstStage(1);
 
         assertFalse(result.isSuccess());
-        assertEquals("Patient data not found", result.error);
+        assertEquals(TreatmentError.PATIENT_NOT_FOUND, result.errorType);
+    }
+
+    @Test
+    void calculateFirstStageReturnsErrorOnInvalidClinicalData() throws Exception {
+        // x110 = "INVALID" will fail parseFirstStageValue
+        FirstStageData data = new FirstStageData(
+            TEST_PATIENT,
+            100, 2.5, 3.0, 4, 5, 1.1, 2.2, 3.3, 4.4, "INVALID", "Ні", "Так"
+        );
+        when(patientRepository.getFirstStageData(1)).thenReturn(Optional.of(data));
+
+        TreatmentService.TreatmentResult result = service.calculateFirstStage(1);
+
+        assertFalse(result.isSuccess());
+        assertEquals(TreatmentError.INVALID_CLINICAL_DATA, result.errorType);
+        assertTrue(result.error.contains("Invalid clinical data"));
+    }
+
+    @Test
+    void calculateFirstStageReturnsScriptFailedOnPythonError() throws Exception {
+        FirstStageData data = new FirstStageData(
+            TEST_PATIENT,
+            100, 2.5, 3.0, 4, 5, 1.1, 2.2, 3.3, 4.4, "Так", "Ні", "Так"
+        );
+        when(patientRepository.getFirstStageData(1)).thenReturn(Optional.of(data));
+
+        PythonService.GaResult gaResult = new PythonService.GaResult();
+        gaResult.error = "Script crashed";
+        when(pythonService.runFirstStage(anyList())).thenReturn(gaResult);
+
+        TreatmentService.TreatmentResult result = service.calculateFirstStage(1);
+
+        assertFalse(result.isSuccess());
+        assertEquals(TreatmentError.SCRIPT_FAILED, result.errorType);
+        assertEquals("Script crashed", result.error);
     }
 
     // calculateSecondStage tests
@@ -199,6 +233,7 @@ class TreatmentServiceTest {
         TreatmentService.TreatmentResult result = service.calculateSecondStage(1);
 
         assertTrue(result.isSuccess());
+        assertNull(result.errorType);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Double>> captor = ArgumentCaptor.forClass(List.class);
@@ -206,7 +241,6 @@ class TreatmentServiceTest {
 
         List<Double> xList = captor.getValue();
         assertEquals(9, xList.size());
-        // SecondStage encoding: Ні=1.0, Так=2.0
         assertEquals(1.0, xList.get(0));  // pe = "Ні" → 1.0
         assertEquals(2.0, xList.get(1));  // vab = "Так" → 2.0
         assertEquals(1.0, xList.get(2));  // pEarly = "Ні" → 1.0
@@ -219,7 +253,7 @@ class TreatmentServiceTest {
         TreatmentService.TreatmentResult result = service.calculateSecondStage(1);
 
         assertFalse(result.isSuccess());
-        assertEquals("Patient not found", result.error);
+        assertEquals(TreatmentError.PATIENT_NOT_FOUND, result.errorType);
     }
 
     @Test
@@ -230,7 +264,24 @@ class TreatmentServiceTest {
         TreatmentService.TreatmentResult result = service.calculateSecondStage(1);
 
         assertFalse(result.isSuccess());
+        assertEquals(TreatmentError.NO_POST_CONDITION_DATA, result.errorType);
         assertTrue(result.error.contains("Іванов"));
-        assertTrue(result.error.contains("no post-condition data"));
+    }
+
+    @Test
+    void calculateSecondStageReturnsErrorOnInvalidPostConditionData() throws Exception {
+        // "BOGUS" will fail parseSecondStageValue
+        SecondStageData data = new SecondStageData(
+            TEST_PATIENT,
+            "BOGUS", "Так", "Ні", "Так", "Ні", "Так", "Ні", "Так", "Ні"
+        );
+        when(patientRepository.getSecondStageData(1))
+            .thenReturn(Optional.of(new SecondStageResult.Found(data)));
+
+        TreatmentService.TreatmentResult result = service.calculateSecondStage(1);
+
+        assertFalse(result.isSuccess());
+        assertEquals(TreatmentError.INVALID_CLINICAL_DATA, result.errorType);
+        assertTrue(result.error.contains("Invalid post-condition data"));
     }
 }

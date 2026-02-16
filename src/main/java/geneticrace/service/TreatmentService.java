@@ -58,10 +58,18 @@ public class TreatmentService {
     public static class TreatmentResult {
         public List<List<Double>> treatments;
         public List<Integer> complications;
+        public TreatmentError errorType;
         public String error;
 
         public boolean isSuccess() {
             return error == null && treatments != null && !treatments.isEmpty();
+        }
+
+        static TreatmentResult failure(TreatmentError type, String message) {
+            TreatmentResult r = new TreatmentResult();
+            r.errorType = type;
+            r.error = message;
+            return r;
         }
     }
 
@@ -103,33 +111,37 @@ public class TreatmentService {
      * Runs on background thread - do not call from UI thread directly.
      */
     public TreatmentResult calculateFirstStage(int patientId) {
-        TreatmentResult result = new TreatmentResult();
-
         try {
             Optional<FirstStageData> optData = patientRepository.getFirstStageData(patientId);
 
             if (optData.isEmpty()) {
-                result.error = "Patient data not found";
-                return result;
+                return TreatmentResult.failure(TreatmentError.PATIENT_NOT_FOUND,
+                    "Patient data not found");
             }
 
             FirstStageData data = optData.get();
-            List<Double> xList = List.of(
-                (double) data.x101(), data.x102(), data.x103(),
-                (double) data.x104(), (double) data.x105(),
-                data.x106(), data.x107(), data.x108(), data.x109(),
-                parseFirstStageValue(data.x110()),
-                parseFirstStageValue(data.x111()),
-                parseFirstStageValue(data.x112())
-            );
+            List<Double> xList;
+            try {
+                xList = List.of(
+                    (double) data.x101(), data.x102(), data.x103(),
+                    (double) data.x104(), (double) data.x105(),
+                    data.x106(), data.x107(), data.x108(), data.x109(),
+                    parseFirstStageValue(data.x110()),
+                    parseFirstStageValue(data.x111()),
+                    parseFirstStageValue(data.x112())
+                );
+            } catch (IllegalArgumentException e) {
+                return TreatmentResult.failure(TreatmentError.INVALID_CLINICAL_DATA,
+                    "Invalid clinical data: " + e.getMessage());
+            }
 
             PythonService.GaResult gaResult = pythonService.runFirstStage(xList);
 
             if (!gaResult.isSuccess()) {
-                result.error = gaResult.error;
-                return result;
+                return TreatmentResult.failure(TreatmentError.SCRIPT_FAILED, gaResult.error);
             }
 
+            TreatmentResult result = new TreatmentResult();
             result.treatments = gaResult.treatments;
             result.complications = gaResult.complications;
 
@@ -138,8 +150,8 @@ public class TreatmentService {
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "FirstStage calculation failed", e);
-            result.error = "Calculation failed: " + e.getMessage();
-            return result;
+            return TreatmentResult.failure(TreatmentError.CALCULATION_FAILED,
+                "Calculation failed: " + e.getMessage());
         }
     }
 
@@ -147,42 +159,46 @@ public class TreatmentService {
      * Calculates SecondStage (medication) treatment strategy.
      */
     public TreatmentResult calculateSecondStage(int patientId) {
-        TreatmentResult result = new TreatmentResult();
-
         try {
             Optional<SecondStageResult> optResult = patientRepository.getSecondStageData(patientId);
 
             if (optResult.isEmpty()) {
-                result.error = "Patient not found";
-                return result;
+                return TreatmentResult.failure(TreatmentError.PATIENT_NOT_FOUND,
+                    "Patient not found");
             }
 
             SecondStageResult secondStageResult = optResult.get();
             if (secondStageResult instanceof SecondStageResult.PatientHasNoPostConditions noPC) {
-                result.error = "Patient " + noPC.patient().surname() + " has no post-condition data";
-                return result;
+                return TreatmentResult.failure(TreatmentError.NO_POST_CONDITION_DATA,
+                    "Patient " + noPC.patient().surname() + " has no post-condition data");
             }
 
             SecondStageData data = ((SecondStageResult.Found) secondStageResult).data();
-            List<Double> xList = List.of(
-                parseSecondStageValue(data.pe()),
-                parseSecondStageValue(data.vab()),
-                parseSecondStageValue(data.pEarly()),
-                parseSecondStageValue(data.plicat()),
-                parseSecondStageValue(data.stroke()),
-                parseSecondStageValue(data.thrombosis()),
-                parseSecondStageValue(data.chyle()),
-                parseSecondStageValue(data.avb()),
-                parseSecondStageValue(data.snd())
-            );
+            List<Double> xList;
+            try {
+                xList = List.of(
+                    parseSecondStageValue(data.pe()),
+                    parseSecondStageValue(data.vab()),
+                    parseSecondStageValue(data.pEarly()),
+                    parseSecondStageValue(data.plicat()),
+                    parseSecondStageValue(data.stroke()),
+                    parseSecondStageValue(data.thrombosis()),
+                    parseSecondStageValue(data.chyle()),
+                    parseSecondStageValue(data.avb()),
+                    parseSecondStageValue(data.snd())
+                );
+            } catch (IllegalArgumentException e) {
+                return TreatmentResult.failure(TreatmentError.INVALID_CLINICAL_DATA,
+                    "Invalid post-condition data: " + e.getMessage());
+            }
 
             PythonService.GaResult gaResult = pythonService.runSecondStage(xList);
 
             if (!gaResult.isSuccess()) {
-                result.error = gaResult.error;
-                return result;
+                return TreatmentResult.failure(TreatmentError.SCRIPT_FAILED, gaResult.error);
             }
 
+            TreatmentResult result = new TreatmentResult();
             result.treatments = gaResult.treatments;
             result.complications = gaResult.complications;
 
@@ -191,8 +207,8 @@ public class TreatmentService {
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "SecondStage calculation failed", e);
-            result.error = "Calculation failed: " + e.getMessage();
-            return result;
+            return TreatmentResult.failure(TreatmentError.CALCULATION_FAILED,
+                "Calculation failed: " + e.getMessage());
         }
     }
 
