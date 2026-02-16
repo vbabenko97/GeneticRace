@@ -30,7 +30,6 @@ public class AppConfig {
     private static final String SCRIPTS_DIR_NAME = "scripts";
     
     private static final Properties config = new Properties();
-    private static boolean initialized = false;
     
     static {
         loadConfig();
@@ -61,8 +60,6 @@ public class AppConfig {
         // 3. Override with environment variables
         overrideFromEnv("db.path", "GENETICRACE_DB_PATH");
         overrideFromEnv("python.executable", "GENETICRACE_PYTHON");
-        
-        initialized = true;
     }
     
     private static void overrideFromEnv(String configKey, String envVar) {
