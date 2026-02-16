@@ -135,7 +135,7 @@ public class TreatmentService {
                     "Invalid clinical data: " + e.getMessage());
             }
 
-            PythonService.GaResult gaResult = pythonService.runFirstStage(xList);
+            PythonServicePort.GaResult gaResult = pythonService.runFirstStage(xList);
 
             if (!gaResult.isSuccess()) {
                 return TreatmentResult.failure(TreatmentError.SCRIPT_FAILED, gaResult.error);
@@ -192,7 +192,7 @@ public class TreatmentService {
                     "Invalid post-condition data: " + e.getMessage());
             }
 
-            PythonService.GaResult gaResult = pythonService.runSecondStage(xList);
+            PythonServicePort.GaResult gaResult = pythonService.runSecondStage(xList);
 
             if (!gaResult.isSuccess()) {
                 return TreatmentResult.failure(TreatmentError.SCRIPT_FAILED, gaResult.error);

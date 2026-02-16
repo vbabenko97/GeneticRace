@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright © 2019, 2026. All rights reserved.
+Authors: Vitalii Babenko, Anastasiia Dydyk
+Refactored: 2026
+-->
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.text.Font?>
+<?import javafx.geometry.Insets?>
+
+<AnchorPane prefHeight="500.0" prefWidth="600.0" style="-fx-background-color: #f5f5f5;"
+            xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="geneticrace.controller.TreatmentController">
+
+    <VBox alignment="CENTER" spacing="15.0"
+          AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="30.0"
+          AnchorPane.rightAnchor="30.0" AnchorPane.bottomAnchor="20.0">
+
+        <Label fx:id="titleLabel" text="Розрахунок лікування"
+               style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+
+        <Label fx:id="statusLabel" text="" style="-fx-font-size: 14px; -fx-text-fill: #666;"/>
+
+        <ProgressIndicator fx:id="progressIndicator" visible="false" prefHeight="40.0"/>
+
+        <TextArea fx:id="resultArea" prefHeight="300.0" editable="false"
+                  wrapText="true" style="-fx-font-family: monospace;"/>
+
+        <HBox alignment="CENTER" spacing="15.0">
+            <Button fx:id="saveBtn" text="Зберегти" onAction="#handleSave"
+                    prefHeight="35.0" prefWidth="120.0" disable="true"
+                    style="-fx-background-color: #4CAF50; -fx-text-fill: white;">
+                <font><Font name="Arial" size="14.0"/></font>
+            </Button>
+            <Button fx:id="closeBtn" text="Закрити" onAction="#handleClose"
+                    prefHeight="35.0" prefWidth="120.0"
+                    style="-fx-background-color: #f44336; -fx-text-fill: white;">
+                <font><Font name="Arial" size="14.0"/></font>
+            </Button>
+        </HBox>
+
+        <padding>
+            <Insets top="10.0" bottom="10.0"/>
+        </padding>
+    </VBox>
+</AnchorPane>

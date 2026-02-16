@@ -12,9 +12,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,25 +37,12 @@ public class PythonService implements PythonServicePort {
     }
     
     /**
-     * Result of a Python script execution.
-     */
-    public static class GaResult {
-        public List<List<Double>> treatments;
-        public List<Integer> complications;
-        public String error;
-        
-        public boolean isSuccess() {
-            return error == null && treatments != null;
-        }
-    }
-    
-    /**
      * Runs the FirstStage genetic algorithm.
      * 
      * @param xList Input clinical values (12 elements)
      * @return GA result with treatment suggestions
      */
-    public GaResult runFirstStage(List<Double> xList) throws IOException, InterruptedException {
+    public PythonServicePort.GaResult runFirstStage(List<Double> xList) throws IOException, InterruptedException {
         ensureScriptsExtracted();
         
         JsonObject input = new JsonObject();
@@ -72,7 +57,7 @@ public class PythonService implements PythonServicePort {
      * @param xList Input post-condition values (9 elements)
      * @return GA result with treatment suggestions
      */
-    public GaResult runSecondStage(List<Double> xList) throws IOException, InterruptedException {
+    public PythonServicePort.GaResult runSecondStage(List<Double> xList) throws IOException, InterruptedException {
         ensureScriptsExtracted();
         
         JsonObject input = new JsonObject();
@@ -81,13 +66,13 @@ public class PythonService implements PythonServicePort {
         return executeScript(SECOND_STAGE_SCRIPT, input.toString());
     }
     
-    private GaResult executeScript(String scriptName, String jsonInput) 
+    private PythonServicePort.GaResult executeScript(String scriptName, String jsonInput) 
             throws IOException, InterruptedException {
         
         Path scriptPath = scriptsDirectory.resolve(scriptName);
         
         if (!Files.exists(scriptPath)) {
-            GaResult error = new GaResult();
+            PythonServicePort.GaResult error = new PythonServicePort.GaResult();
             error.error = "Script not found: " + scriptPath;
             return error;
         }
@@ -130,7 +115,7 @@ public class PythonService implements PythonServicePort {
         
         if (!completed) {
             process.destroyForcibly();
-            GaResult error = new GaResult();
+            PythonServicePort.GaResult error = new PythonServicePort.GaResult();
             error.error = "Script timed out after " + TIMEOUT_SECONDS + " seconds";
             return error;
         }
@@ -139,17 +124,17 @@ public class PythonService implements PythonServicePort {
         
         if (exitCode != 0) {
             LOGGER.warning("Script failed with exit code " + exitCode + ": " + stderr);
-            GaResult error = new GaResult();
+            PythonServicePort.GaResult error = new PythonServicePort.GaResult();
             error.error = "Script failed: " + stderr.toString().trim();
             return error;
         }
         
         // Parse JSON output
         try {
-            return GSON.fromJson(stdout.toString(), GaResult.class);
+            return GSON.fromJson(stdout.toString(), PythonServicePort.GaResult.class);
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Failed to parse script output: " + stdout, e);
-            GaResult error = new GaResult();
+            PythonServicePort.GaResult error = new PythonServicePort.GaResult();
             error.error = "Failed to parse output: " + e.getMessage();
             return error;
         }

@@ -146,7 +146,7 @@ class TreatmentServiceTest {
         );
         when(patientRepository.getFirstStageData(1)).thenReturn(Optional.of(data));
 
-        PythonService.GaResult gaResult = new PythonService.GaResult();
+        PythonServicePort.GaResult gaResult = new PythonServicePort.GaResult();
         gaResult.treatments = List.of(List.of(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0));
         gaResult.complications = List.of(1, 1, 1, 1, 1, 1, 1, 1, 1);
         when(pythonService.runFirstStage(anyList())).thenReturn(gaResult);
@@ -203,7 +203,7 @@ class TreatmentServiceTest {
         );
         when(patientRepository.getFirstStageData(1)).thenReturn(Optional.of(data));
 
-        PythonService.GaResult gaResult = new PythonService.GaResult();
+        PythonServicePort.GaResult gaResult = new PythonServicePort.GaResult();
         gaResult.error = "Script crashed";
         when(pythonService.runFirstStage(anyList())).thenReturn(gaResult);
 
@@ -225,7 +225,7 @@ class TreatmentServiceTest {
         when(patientRepository.getSecondStageData(1))
             .thenReturn(Optional.of(new SecondStageResult.Found(data)));
 
-        PythonService.GaResult gaResult = new PythonService.GaResult();
+        PythonServicePort.GaResult gaResult = new PythonServicePort.GaResult();
         gaResult.treatments = List.of(List.of(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0));
         gaResult.complications = List.of(1, 1, 1, 1, 1, 1, 1, 1, 1);
         when(pythonService.runSecondStage(anyList())).thenReturn(gaResult);

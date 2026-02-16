@@ -32,10 +32,10 @@ class TreatmentServiceIntegrationTest {
         "Ні", "Так", "Ні", "Ні", "Так", "Ні", "Так", "Ні", "Так"
     );
 
-    private static final PythonService.GaResult SUCCESS_RESULT = makeSuccessResult();
+    private static final PythonServicePort.GaResult SUCCESS_RESULT = makeSuccessResult();
 
-    private static PythonService.GaResult makeSuccessResult() {
-        PythonService.GaResult r = new PythonService.GaResult();
+    private static PythonServicePort.GaResult makeSuccessResult() {
+        PythonServicePort.GaResult r = new PythonServicePort.GaResult();
         r.treatments = List.of(
             List.of(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
             List.of(9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0)
@@ -59,7 +59,7 @@ class TreatmentServiceIntegrationTest {
 
         PythonServicePort fakePython = new PythonServicePort() {
             @Override
-            public PythonService.GaResult runFirstStage(List<Double> xList) {
+            public PythonServicePort.GaResult runFirstStage(List<Double> xList) {
                 assertEquals(12, xList.size(), "FirstStage expects 12 clinical values");
                 // Verify numeric values pass through correctly
                 assertEquals(120.0, xList.get(0));
@@ -71,7 +71,7 @@ class TreatmentServiceIntegrationTest {
                 return SUCCESS_RESULT;
             }
             @Override
-            public PythonService.GaResult runSecondStage(List<Double> xList) {
+            public PythonServicePort.GaResult runSecondStage(List<Double> xList) {
                 fail("Should not call SecondStage");
                 return null;
             }
@@ -104,12 +104,12 @@ class TreatmentServiceIntegrationTest {
 
         PythonServicePort fakePython = new PythonServicePort() {
             @Override
-            public PythonService.GaResult runFirstStage(List<Double> xList) {
+            public PythonServicePort.GaResult runFirstStage(List<Double> xList) {
                 fail("Should not call FirstStage");
                 return null;
             }
             @Override
-            public PythonService.GaResult runSecondStage(List<Double> xList) {
+            public PythonServicePort.GaResult runSecondStage(List<Double> xList) {
                 assertEquals(9, xList.size(), "SecondStage expects 9 post-condition values");
                 // SecondStage encoding: Ні=1.0, Так=2.0
                 assertEquals(1.0, xList.get(0));  // pe = "Ні"
@@ -142,12 +142,12 @@ class TreatmentServiceIntegrationTest {
 
         PythonServicePort neverCalled = new PythonServicePort() {
             @Override
-            public PythonService.GaResult runFirstStage(List<Double> xList) {
+            public PythonServicePort.GaResult runFirstStage(List<Double> xList) {
                 fail("Should not call Python for missing patient");
                 return null;
             }
             @Override
-            public PythonService.GaResult runSecondStage(List<Double> xList) {
+            public PythonServicePort.GaResult runSecondStage(List<Double> xList) {
                 fail("Should not call Python for missing patient");
                 return null;
             }

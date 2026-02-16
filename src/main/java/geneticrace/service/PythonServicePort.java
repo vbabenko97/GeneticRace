@@ -13,7 +13,20 @@ import java.util.List;
  */
 public interface PythonServicePort {
 
-    PythonService.GaResult runFirstStage(List<Double> xList) throws IOException, InterruptedException;
+    /**
+     * Result of a Python GA script execution.
+     */
+    class GaResult {
+        public List<List<Double>> treatments;
+        public List<Integer> complications;
+        public String error;
 
-    PythonService.GaResult runSecondStage(List<Double> xList) throws IOException, InterruptedException;
+        public boolean isSuccess() {
+            return error == null && treatments != null;
+        }
+    }
+
+    GaResult runFirstStage(List<Double> xList) throws IOException, InterruptedException;
+
+    GaResult runSecondStage(List<Double> xList) throws IOException, InterruptedException;
 }
