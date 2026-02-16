@@ -58,3 +58,6 @@ __pycache__/
 # Logs
 *.log
 logs/
+
+# Docs assets (not ready for repo)
+docs/logo.png

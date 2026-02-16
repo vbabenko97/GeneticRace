@@ -95,20 +95,28 @@ public class AppConfig {
      * On first run, copies the sample database from resources.
      */
     public static Path getDatabasePath() {
+        Path dbPath;
         String configuredPath = config.getProperty("db.path");
         if (configuredPath != null && !configuredPath.isBlank()) {
-            return Paths.get(resolveVariables(configuredPath));
+            dbPath = Paths.get(resolveVariables(configuredPath));
+        } else {
+            dbPath = getAppDirectory().resolve(DB_FILE_NAME);
         }
-        
-        // Default: ~/.geneticrace/HeartDefects.db
-        Path dbPath = getAppDirectory().resolve(DB_FILE_NAME);
-        
-        // Copy sample DB on first run
-        if (!Files.exists(dbPath)) {
+
+        // Copy sample DB on first run (also handles 0-byte files from failed starts)
+        if (!Files.exists(dbPath) || fileIsEmpty(dbPath)) {
             copySampleDatabase(dbPath);
         }
-        
+
         return dbPath;
+    }
+
+    private static boolean fileIsEmpty(Path path) {
+        try {
+            return Files.size(path) == 0;
+        } catch (IOException e) {
+            return false;
+        }
     }
     
     private static void copySampleDatabase(Path targetPath) {

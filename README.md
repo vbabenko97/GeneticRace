@@ -7,6 +7,12 @@ Desktop decision-support prototype (JavaFX) for optimizing treatment strategies 
 
 > **Disclaimer:** This is a research prototype developed as a bachelor thesis at Igor Sikorsky Kyiv Polytechnic Institute. It is **not** a medical device and is **not** intended for clinical decision-making. Use for educational and research purposes only.
 
+## Screenshot
+
+<p align="center">
+  <img src="docs/screenshot.png" alt="Application screenshot" width="700">
+</p>
+
 ## About
 
 The system finds optimal treatment strategies for patients with single-ventricle congenital heart defects. Patients are treated in two stages:
@@ -18,7 +24,7 @@ The algorithm combines three methods to find and evaluate treatment strategies t
 
 ### Group Method of Data Handling (GMDH)
 
-Classification models for predicting postoperative complications (e.g. pulmonary embolism, stroke, thrombosis). All metrics below are on a held-out test set (single 85/15 split); see the thesis for per-model breakdowns and dataset details.
+Classification models for predicting postoperative complications (e.g. pulmonary embolism, stroke, thrombosis). All metrics below are on a held-out test set (single 85/15 split); see the thesis (KPI institutional archive, not publicly available) for per-model breakdowns and dataset details.
 
 - Built in [GMDH Shell DS](https://gmdhsoftware.com/docs/)
 - **18 models** total (9 early + 9 late postoperative condition variables)
@@ -88,11 +94,17 @@ src/test/java/geneticrace/
    mvn javafx:run
    ```
 
-3. Log in with a sample account — `admin` (Admin), `doctor1` (Doctor), or `doctor2` (Doctor). Default passwords match the username (legacy plain-text; auto-migrated to bcrypt on first login). These credentials exist only in the bundled sample DB.
+3. Log in with a sample account (credentials exist only in the bundled sample DB):
+
+   | Username  | Password    | Role   |
+   |-----------|-------------|--------|
+   | `admin`   | `admin123`  | Admin  |
+   | `doctor1` | `doctor123` | Doctor |
+   | `doctor2` | `doctor456` | Doctor |
 
 On first launch, the app creates `~/.geneticrace/` and copies `HeartDefects_sample.db` to `~/.geneticrace/HeartDefects.db`. Python scripts are extracted to `~/.geneticrace/scripts/`. On Windows, `~` resolves to `%USERPROFILE%` (e.g. `C:\Users\<name>\.geneticrace\`).
 
-> **Note:** `mvn package` builds a JAR, but JavaFX apps require module path setup to run standalone. Use `mvn javafx:run` for development. For distribution, see the `native` Maven profile which uses jpackage.
+> **Note:** `mvn package` builds a JAR, but JavaFX apps require module path setup to run standalone. Use `mvn javafx:run` for development. For distribution, build a native installer with `mvn -Pnative package` (requires JDK 17+ with jpackage).
 
 ### Configuration
 
