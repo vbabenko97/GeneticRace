@@ -1,37 +1,98 @@
-# GeneticRace #
-<a><img src="https://github.com/vbabenk/GeneticRace/blob/master/Babenko/Images/logo.png" title="GeneticRace" alt="GeneticRace"></a>
+# GeneticRace
 
-## Description ##
-This is a bachelor thesis project for Igor Sikorsky Kyiv Polytechnic Institute.
+Treatment strategy optimization for patients with congenital heart defects using GMDH, AHP, and Genetic Algorithms.
 
-Project is a system for finding a treatment strategy for patients with congenital heart defects with a single ventricle using group method of data handling, analytic hierarchy process, and genetic algorithms
+[![CI](https://github.com/vbabenko97/GeneticRace/actions/workflows/ci.yml/badge.svg)](https://github.com/vbabenko97/GeneticRace/actions/workflows/ci.yml)
 
-Patients were treated in 2 stages: at first, they underwent various operations, then they were given medications to improve their well-being.
+## About
 
-The task was to build an algorithm for finding operational and conservative (using medications) treatment strategies in order to optimize the condition of patients after.
+Bachelor thesis project for Igor Sikorsky Kyiv Polytechnic Institute.
 
-### Group Method of Data Handling (GMDH) ###
-- GMDH was used for building classification models.
-- Models were built in <a href="https://gmdhsoftware.com/docs/">**GMDH Shell DS**</a> software.
-- Data sample was divided into training (**85%**) and test (**15%**) samples.
-- In total, **18 models** were built.
-- Accuracy of models on test sample varies from **75.9%** to **96.6%**.
-- Sensitivity on test sample varies from **0.814** to **1**.
-- Specificity on test sample varies from **0.73** to **1**.
+The system finds optimal treatment strategies for patients with congenital heart defects with a single ventricle. Patients are treated in two stages:
 
-### Analytic Hierarchy Process (AHP) ###
-- AHP was used to optimize the criteria of patients condition after treatments.
-- Criteria of condition are **9** condition variables in **early postoperative period** and **9** condition variables in **late postoperative period**. For these variables classification models were built.
+1. **First Stage (Operational)** — surgical interventions
+2. **Second Stage (Conservative)** — medication therapy to improve post-operative condition
 
-### Genetic Algorithm (GA) ###
-- GA was used to quickly find a treatment strategy.
-- In average, solution is found in **20 seconds** (or **700 iterations**) of the GA's cycle.
+The algorithm combines three methods to find and evaluate treatment strategies that optimize patient outcomes.
 
-## Sources ##
+### Group Method of Data Handling (GMDH)
 
-<a href="http://www.gmdh.net/">**1. Group Method of Data Handling.**</a><br />
-<a href="https://www.youtube.com/watch?v=J4T70o8gjlk">**2. Manoj, Mathew. Analytic Hierarchy Process (AHP). 2018.**</a><br />
-3. Saaty, Thomas L. Decision Making for Leaders: The Analytic Hierarchy Process for Decisions in a Complex World. RWS Publications, 1990.<br />
-<a href = "https://towardsdatascience.com/introduction-to-genetic-algorithms-including-example-code-e396e98d8bf3">**4. Mallawaarachchi, Vijini. Introduction to Genetic Algorithms. 2017.**</a><br />
-<a href = "https://www.youtube.com/watch?v=1i8muvzZkPw">**5. What is a Genetic Algorithm. 2015.**</a><br />
-6. Goldberg, David E. Genetic Algorithms in Search, Optimization & Machine Learning. Addison-Wesley Publishing Company, Inc., 1989, p. 432.
+- Classification models built in [GMDH Shell DS](https://gmdhsoftware.com/docs/)
+- Data split: **85%** training / **15%** test
+- **18 models** total
+- Test accuracy: **75.9% – 96.6%**
+- Sensitivity: **0.814 – 1.0**, Specificity: **0.73 – 1.0**
+
+### Analytic Hierarchy Process (AHP)
+
+- Optimizes **9 early** and **9 late** postoperative condition criteria
+- Weights derived from pairwise comparison matrices
+
+### Genetic Algorithm (GA)
+
+- Finds treatment strategies in ~**20 seconds** (~700 iterations)
+- Python scripts communicate with Java via JSON IPC
+
+## Tech Stack
+
+- **Java 17** — application core, JavaFX desktop UI
+- **Maven** — build system
+- **SQLite** — patient and treatment data storage
+- **Python 3** — GA scripts (FirstStage.py, SecondStage.py)
+- **JUnit 5 + Mockito** — testing
+- **JaCoCo** — code coverage
+- **GitHub Actions** — CI
+
+## Project Structure
+
+```
+src/main/java/geneticrace/
+  config/         App configuration (paths, Python executable)
+  controller/     JavaFX controllers (Login, MainMenu, PatientChooser, Treatment, PasswordReset)
+  db/             Database connection management
+  model/          Domain records (Patient, User, FirstStageData, SecondStageData)
+  repository/     Data access layer (PatientRepository, PatientDataPort interface)
+  service/        Business logic (TreatmentService, LoginService, PythonService)
+  session/        In-memory session management
+
+src/main/resources/
+  fxml/           JavaFX view definitions
+  python/         GA scripts
+  data/           Sample database
+
+src/test/java/geneticrace/
+  repository/     PatientRepository tests (against sample DB)
+  service/        TreatmentService unit + integration tests, LoginService tests
+  session/        SessionManager tests
+```
+
+## Prerequisites
+
+- **Java 17+**
+- **Maven 3.8+**
+- **Python 3** (for running GA scripts at runtime; not needed for tests)
+
+## Build & Run
+
+```bash
+# Compile
+mvn compile
+
+# Run tests (55 tests)
+mvn test
+
+# Run the application
+mvn javafx:run
+
+# Build JAR
+mvn package
+```
+
+## Sources
+
+1. [Group Method of Data Handling](http://www.gmdh.net/)
+2. [Manoj, Mathew. Analytic Hierarchy Process (AHP). 2018.](https://www.youtube.com/watch?v=J4T70o8gjlk)
+3. Saaty, Thomas L. *Decision Making for Leaders: The Analytic Hierarchy Process for Decisions in a Complex World.* RWS Publications, 1990.
+4. [Mallawaarachchi, Vijini. Introduction to Genetic Algorithms. 2017.](https://towardsdatascience.com/introduction-to-genetic-algorithms-including-example-code-e396e98d8bf3)
+5. [What is a Genetic Algorithm. 2015.](https://www.youtube.com/watch?v=1i8muvzZkPw)
+6. Goldberg, David E. *Genetic Algorithms in Search, Optimization & Machine Learning.* Addison-Wesley, 1989.
