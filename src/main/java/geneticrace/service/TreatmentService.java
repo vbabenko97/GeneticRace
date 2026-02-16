@@ -10,14 +10,13 @@ import geneticrace.model.SecondStageData;
 import geneticrace.repository.PatientDataPort;
 import geneticrace.repository.PatientDataPort.SecondStageResult;
 import geneticrace.repository.PatientRepository;
-import geneticrace.session.SessionManager;
 import javafx.concurrent.Task;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -248,8 +247,8 @@ public class TreatmentService {
             throw new IllegalArgumentException("Treatment must have " + TREATMENT_VALUES_COUNT + " values");
         }
 
-        String timestamp = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss")
-            .format(Calendar.getInstance().getTime());
+        String timestamp = LocalDateTime.now()
+            .format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"));
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(INSERT_FIRST_STAGE)) {
@@ -274,8 +273,8 @@ public class TreatmentService {
             throw new IllegalArgumentException("Treatment must have " + TREATMENT_VALUES_COUNT + " values");
         }
 
-        String timestamp = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss")
-            .format(Calendar.getInstance().getTime());
+        String timestamp = LocalDateTime.now()
+            .format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"));
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(INSERT_SECOND_STAGE)) {
