@@ -23,7 +23,7 @@ import java.util.logging.Logger;
  * Service for executing Python genetic algorithm scripts.
  * Handles script extraction from JAR and JSON-based IPC.
  */
-public class PythonService {
+public class PythonService implements PythonServicePort {
     private static final Logger LOGGER = Logger.getLogger(PythonService.class.getName());
     private static final Gson GSON = new Gson();
     

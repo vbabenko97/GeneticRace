@@ -5,6 +5,10 @@
 package geneticrace.service;
 
 import geneticrace.db.DatabaseConnection;
+import geneticrace.model.FirstStageData;
+import geneticrace.model.SecondStageData;
+import geneticrace.repository.PatientDataPort;
+import geneticrace.repository.PatientDataPort.SecondStageResult;
 import geneticrace.repository.PatientRepository;
 import geneticrace.session.SessionManager;
 import javafx.concurrent.Task;
@@ -13,9 +17,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,12 +30,6 @@ import java.util.logging.Logger;
 public class TreatmentService {
     private static final Logger LOGGER = Logger.getLogger(TreatmentService.class.getName());
 
-    // Patient data layout: indices 0-4 = demographics (surname, firstname, middlename, sex, dob)
-    private static final int DATA_OFFSET = 5;
-    private static final int FIRST_STAGE_DATA_SIZE = 17;    // 5 demographics + 12 clinical values
-    private static final int FIRST_STAGE_CLINICAL_END = 17;  // exclusive
-    private static final int SECOND_STAGE_DATA_SIZE = 14;    // 5 demographics + 9 post-condition values
-    private static final int SECOND_STAGE_CLINICAL_END = 14; // exclusive
     private static final int TREATMENT_VALUES_COUNT = 9;
 
     private static final String INSERT_FIRST_STAGE =
@@ -42,14 +40,14 @@ public class TreatmentService {
         "INSERT INTO SecondStage(patientID, x401, x402, x403, x404, x405, x406, x407, x408, x409, lastcommit) " +
         "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-    private final PatientRepository patientRepository;
-    private final PythonService pythonService;
+    private final PatientDataPort patientRepository;
+    private final PythonServicePort pythonService;
 
     public TreatmentService() {
         this(new PatientRepository(), new PythonService());
     }
 
-    public TreatmentService(PatientRepository patientRepository, PythonService pythonService) {
+    public TreatmentService(PatientDataPort patientRepository, PythonServicePort pythonService) {
         this.patientRepository = patientRepository;
         this.pythonService = pythonService;
     }
@@ -108,18 +106,22 @@ public class TreatmentService {
         TreatmentResult result = new TreatmentResult();
 
         try {
-            List<String> patientData = patientRepository.getPatientDetailsForFirstStage(patientId);
+            Optional<FirstStageData> optData = patientRepository.getFirstStageData(patientId);
 
-            if (patientData.size() < FIRST_STAGE_DATA_SIZE) {
-                result.error = "Insufficient patient data for FirstStage calculation";
+            if (optData.isEmpty()) {
+                result.error = "Patient data not found";
                 return result;
             }
 
-            // Extract clinical values (indices DATA_OFFSET..FIRST_STAGE_CLINICAL_END)
-            List<Double> xList = new ArrayList<>();
-            for (int i = DATA_OFFSET; i < FIRST_STAGE_CLINICAL_END; i++) {
-                xList.add(parseFirstStageValue(patientData.get(i)));
-            }
+            FirstStageData data = optData.get();
+            List<Double> xList = List.of(
+                (double) data.x101(), data.x102(), data.x103(),
+                (double) data.x104(), (double) data.x105(),
+                data.x106(), data.x107(), data.x108(), data.x109(),
+                parseFirstStageValue(data.x110()),
+                parseFirstStageValue(data.x111()),
+                parseFirstStageValue(data.x112())
+            );
 
             PythonService.GaResult gaResult = pythonService.runFirstStage(xList);
 
@@ -148,18 +150,31 @@ public class TreatmentService {
         TreatmentResult result = new TreatmentResult();
 
         try {
-            List<String> patientData = patientRepository.getPatientDetailsForSecondStage(patientId);
+            Optional<SecondStageResult> optResult = patientRepository.getSecondStageData(patientId);
 
-            if (patientData.size() < SECOND_STAGE_DATA_SIZE) {
-                result.error = "Insufficient patient data for SecondStage calculation";
+            if (optResult.isEmpty()) {
+                result.error = "Patient not found";
                 return result;
             }
 
-            // Extract post-condition values (indices DATA_OFFSET..SECOND_STAGE_CLINICAL_END)
-            List<Double> xList = new ArrayList<>();
-            for (int i = DATA_OFFSET; i < SECOND_STAGE_CLINICAL_END; i++) {
-                xList.add(parseSecondStageValue(patientData.get(i)));
+            SecondStageResult secondStageResult = optResult.get();
+            if (secondStageResult instanceof SecondStageResult.PatientHasNoPostConditions noPC) {
+                result.error = "Patient " + noPC.patient().surname() + " has no post-condition data";
+                return result;
             }
+
+            SecondStageData data = ((SecondStageResult.Found) secondStageResult).data();
+            List<Double> xList = List.of(
+                parseSecondStageValue(data.pe()),
+                parseSecondStageValue(data.vab()),
+                parseSecondStageValue(data.pEarly()),
+                parseSecondStageValue(data.plicat()),
+                parseSecondStageValue(data.stroke()),
+                parseSecondStageValue(data.thrombosis()),
+                parseSecondStageValue(data.chyle()),
+                parseSecondStageValue(data.avb()),
+                parseSecondStageValue(data.snd())
+            );
 
             PythonService.GaResult gaResult = pythonService.runSecondStage(xList);
 

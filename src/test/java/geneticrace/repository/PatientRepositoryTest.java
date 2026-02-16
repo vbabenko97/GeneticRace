@@ -1,6 +1,9 @@
 package geneticrace.repository;
 
 import geneticrace.db.DatabaseConnection;
+import geneticrace.model.FirstStageData;
+import geneticrace.model.SecondStageData;
+import geneticrace.repository.PatientDataPort.SecondStageResult;
 import geneticrace.session.SessionManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -22,63 +26,64 @@ class PatientRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // Skip tests if DB is not accessible or tables don't exist
         assumeTrue(isDatabaseReady(),
             "Skipping: database not accessible or missing tables (run after app setup)");
 
         repository = new PatientRepository();
 
-        // Ensure session is set for access control
         SessionManager session = SessionManager.getInstance();
         session.login(1, "admin", "Admin", "Admin");
     }
 
     @Test
-    void getPatientDetailsForFirstStageReturnsCorrectSize() throws Exception {
-        List<String> details = repository.getPatientDetailsForFirstStage(1);
+    void getFirstStageDataReturnsDataForExistingPatient() throws Exception {
+        Optional<FirstStageData> opt = repository.getFirstStageData(1);
 
-        // 5 demographics + 12 clinical values = 17
-        assertEquals(17, details.size(), "Expected 17 values (5 demographics + 12 clinical)");
+        assertTrue(opt.isPresent(), "Expected first-stage data for patient 1");
+        FirstStageData data = opt.get();
+        assertNotNull(data.patient(), "Patient should not be null");
+        assertNotNull(data.patient().surname(), "Surname should not be null");
+        assertNotNull(data.patient().firstname(), "Firstname should not be null");
+        assertNotNull(data.x110(), "x110 (categorical) should not be null");
     }
 
     @Test
-    void getPatientDetailsForFirstStageReturnsDemographicsFirst() throws Exception {
-        List<String> details = repository.getPatientDetailsForFirstStage(1);
-
-        assumeTrue(!details.isEmpty(), "No data returned for patient 1");
-
-        // First 5 should be demographics
-        assertNotNull(details.get(0), "surname should not be null");
-        assertNotNull(details.get(1), "firstname should not be null");
-        // index 3 = sex, index 4 = dateOfBirth
-        assertNotNull(details.get(3), "sex should not be null");
-        assertNotNull(details.get(4), "dateOfBirth should not be null");
+    void getFirstStageDataReturnsEmptyForNonExistentPatient() throws Exception {
+        Optional<FirstStageData> opt = repository.getFirstStageData(99999);
+        assertTrue(opt.isEmpty());
     }
 
     @Test
-    void getPatientDetailsForSecondStageReturnsCorrectSize() throws Exception {
-        List<String> details = repository.getPatientDetailsForSecondStage(1);
+    void getSecondStageDataReturnsFoundForPatientWithPCData() throws Exception {
+        Optional<SecondStageResult> opt = repository.getSecondStageData(1);
 
-        // 5 demographics + 9 post-condition values = 14
-        assertEquals(14, details.size(), "Expected 14 values (5 demographics + 9 post-condition)");
-    }
+        assertTrue(opt.isPresent(), "Expected result for patient 1");
 
-    @Test
-    void getPatientDetailsForSecondStageContainsPostConditionValues() throws Exception {
-        List<String> details = repository.getPatientDetailsForSecondStage(1);
-
-        assumeTrue(details.size() >= 14, "Insufficient data for patient 1");
-
-        // Post-condition values at indices 5-13 should be text (Yes/No type)
-        for (int i = 5; i < 14; i++) {
-            assertNotNull(details.get(i), "Post-condition value at index " + i + " should not be null");
+        if (opt.get() instanceof SecondStageResult.Found found) {
+            SecondStageData data = found.data();
+            assertNotNull(data.patient(), "Patient should not be null");
+            assertNotNull(data.pe(), "pe should not be null");
+            assertNotNull(data.vab(), "vab should not be null");
+            assertNotNull(data.snd(), "snd should not be null");
         }
+        // PatientHasNoPostConditions is also valid if sample DB has no PC row for patient 1
     }
 
     @Test
-    void getPatientDetailsForFirstStageReturnsEmptyForNonExistentPatient() throws Exception {
-        List<String> details = repository.getPatientDetailsForFirstStage(99999);
-        assertTrue(details.isEmpty());
+    void getSecondStageDataReturnsEmptyForNonExistentPatient() throws Exception {
+        Optional<SecondStageResult> opt = repository.getSecondStageData(99999);
+        assertTrue(opt.isEmpty());
+    }
+
+    @Test
+    void getSecondStageDataDistinguishesPatientFoundFromNotFound() throws Exception {
+        // Patient 1 exists → should not be empty
+        Optional<SecondStageResult> existing = repository.getSecondStageData(1);
+        assertTrue(existing.isPresent(), "Existing patient should return non-empty result");
+
+        // Patient 99999 does not exist → should be empty
+        Optional<SecondStageResult> missing = repository.getSecondStageData(99999);
+        assertTrue(missing.isEmpty(), "Non-existent patient should return empty");
     }
 
     @Test
@@ -89,7 +94,6 @@ class PatientRepositoryTest {
 
     /**
      * Checks that the DB is reachable AND contains the expected tables.
-     * SQLite silently creates empty files, so SELECT 1 alone is insufficient.
      */
     private static boolean isDatabaseReady() {
         try (Connection conn = DatabaseConnection.getConnection();

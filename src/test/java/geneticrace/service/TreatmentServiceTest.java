@@ -1,6 +1,10 @@
 package geneticrace.service;
 
-import geneticrace.repository.PatientRepository;
+import geneticrace.model.FirstStageData;
+import geneticrace.model.Patient;
+import geneticrace.model.SecondStageData;
+import geneticrace.repository.PatientDataPort;
+import geneticrace.repository.PatientDataPort.SecondStageResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,12 +12,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
@@ -21,12 +23,15 @@ import static org.mockito.Mockito.*;
 class TreatmentServiceTest {
 
     @Mock
-    private PatientRepository patientRepository;
+    private PatientDataPort patientRepository;
 
     @Mock
-    private PythonService pythonService;
+    private PythonServicePort pythonService;
 
     private TreatmentService service;
+
+    private static final Patient TEST_PATIENT =
+        new Patient(1, "Іванов", "Іван", "Іванович", "Чоловіча", "1990-01-01");
 
     @BeforeEach
     void setUp() {
@@ -133,17 +138,15 @@ class TreatmentServiceTest {
         assertEquals(2.0, service.parseSecondStageValue("Так"));
     }
 
-    // Integration-level test with mocks: verify xList passed to PythonService
+    // calculateFirstStage tests
 
     @Test
     void calculateFirstStagePassesCorrectXListToPython() throws Exception {
-        // Build patient data: 5 demographics + 12 clinical values = 17 total
-        List<String> patientData = new ArrayList<>(Arrays.asList(
-            "Іванов", "Іван", "Іванович", "Чоловіча", "1990-01-01", // demographics
-            "100", "2.5", "3.0", "4", "5", "1.1", "2.2", "3.3", "4.4", "Так", "Ні", "Так" // clinical
-        ));
-
-        when(patientRepository.getPatientDetailsForFirstStage(1)).thenReturn(patientData);
+        FirstStageData data = new FirstStageData(
+            TEST_PATIENT,
+            100, 2.5, 3.0, 4, 5, 1.1, 2.2, 3.3, 4.4, "Так", "Ні", "Так"
+        );
+        when(patientRepository.getFirstStageData(1)).thenReturn(Optional.of(data));
 
         PythonService.GaResult gaResult = new PythonService.GaResult();
         gaResult.treatments = List.of(List.of(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0));
@@ -154,7 +157,6 @@ class TreatmentServiceTest {
 
         assertTrue(result.isSuccess());
 
-        // Capture the xList passed to PythonService
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Double>> captor = ArgumentCaptor.forClass(List.class);
         verify(pythonService).runFirstStage(captor.capture());
@@ -169,14 +171,66 @@ class TreatmentServiceTest {
     }
 
     @Test
-    void calculateFirstStageReturnsErrorWhenInsufficientData() throws Exception {
-        when(patientRepository.getPatientDetailsForFirstStage(1))
-            .thenReturn(new ArrayList<>(List.of("a", "b", "c"))); // only 3 values
+    void calculateFirstStageReturnsErrorWhenPatientNotFound() throws Exception {
+        when(patientRepository.getFirstStageData(1)).thenReturn(Optional.empty());
 
         TreatmentService.TreatmentResult result = service.calculateFirstStage(1);
 
         assertFalse(result.isSuccess());
-        assertNotNull(result.error);
-        assertTrue(result.error.contains("Insufficient"));
+        assertEquals("Patient data not found", result.error);
+    }
+
+    // calculateSecondStage tests
+
+    @Test
+    void calculateSecondStagePassesCorrectXListToPython() throws Exception {
+        SecondStageData data = new SecondStageData(
+            TEST_PATIENT,
+            "Ні", "Так", "Ні", "Так", "Ні", "Так", "Ні", "Так", "Ні"
+        );
+        when(patientRepository.getSecondStageData(1))
+            .thenReturn(Optional.of(new SecondStageResult.Found(data)));
+
+        PythonService.GaResult gaResult = new PythonService.GaResult();
+        gaResult.treatments = List.of(List.of(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0));
+        gaResult.complications = List.of(1, 1, 1, 1, 1, 1, 1, 1, 1);
+        when(pythonService.runSecondStage(anyList())).thenReturn(gaResult);
+
+        TreatmentService.TreatmentResult result = service.calculateSecondStage(1);
+
+        assertTrue(result.isSuccess());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Double>> captor = ArgumentCaptor.forClass(List.class);
+        verify(pythonService).runSecondStage(captor.capture());
+
+        List<Double> xList = captor.getValue();
+        assertEquals(9, xList.size());
+        // SecondStage encoding: Ні=1.0, Так=2.0
+        assertEquals(1.0, xList.get(0));  // pe = "Ні" → 1.0
+        assertEquals(2.0, xList.get(1));  // vab = "Так" → 2.0
+        assertEquals(1.0, xList.get(2));  // pEarly = "Ні" → 1.0
+    }
+
+    @Test
+    void calculateSecondStageReturnsErrorWhenPatientNotFound() throws Exception {
+        when(patientRepository.getSecondStageData(1)).thenReturn(Optional.empty());
+
+        TreatmentService.TreatmentResult result = service.calculateSecondStage(1);
+
+        assertFalse(result.isSuccess());
+        assertEquals("Patient not found", result.error);
+    }
+
+    @Test
+    void calculateSecondStageReturnsErrorWhenNoPostConditionData() throws Exception {
+        when(patientRepository.getSecondStageData(1))
+            .thenReturn(Optional.of(new SecondStageResult.PatientHasNoPostConditions(TEST_PATIENT)));
+
+        TreatmentService.TreatmentResult result = service.calculateSecondStage(1);
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.error.contains("Іванов"));
+        assertTrue(result.error.contains("no post-condition data"));
     }
 }
