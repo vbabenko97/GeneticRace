@@ -9,7 +9,7 @@ Desktop decision-support prototype (JavaFX) for optimizing treatment strategies 
 
 ## About
 
-The system finds optimal treatment strategies for patients with congenital heart defects with a single ventricle. Patients are treated in two stages:
+The system finds optimal treatment strategies for patients with single-ventricle congenital heart defects. Patients are treated in two stages:
 
 1. **First Stage (Operational)** — surgical interventions
 2. **Second Stage (Conservative)** — medication therapy to improve post-operative condition
@@ -33,7 +33,7 @@ Classification models for predicting postoperative complications (e.g. pulmonary
 ### Genetic Algorithm (GA)
 
 - Finds treatment strategies in approximately **20 seconds** (~700 iterations) on a 2019-era laptop
-- Python scripts communicate with Java via JSON over CLI arguments / stdout
+- Python scripts communicate with Java via JSON passed as `--input` and returned via stdout
 
 ## Tech Stack
 
@@ -88,15 +88,7 @@ src/test/java/geneticrace/
    mvn javafx:run
    ```
 
-3. Log in with a sample account:
-
-   | Username  | Role    |
-   |-----------|---------|
-   | `admin`   | Admin   |
-   | `doctor1` | Doctor  |
-   | `doctor2` | Doctor  |
-
-   Default passwords match the username (legacy plain-text; auto-migrated to bcrypt on first login).
+3. Log in with a sample account — `admin` (Admin), `doctor1` (Doctor), or `doctor2` (Doctor). Default passwords match the username (legacy plain-text; auto-migrated to bcrypt on first login). These credentials exist only in the bundled sample DB.
 
 On first launch, the app creates `~/.geneticrace/` and copies `HeartDefects_sample.db` to `~/.geneticrace/HeartDefects.db`. Python scripts are extracted to `~/.geneticrace/scripts/`. On Windows, `~` resolves to `%USERPROFILE%` (e.g. `C:\Users\<name>\.geneticrace\`).
 
