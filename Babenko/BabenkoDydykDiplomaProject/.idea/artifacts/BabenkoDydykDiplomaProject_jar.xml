@@ -1,9 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" build-on-make="true" name="BabenkoDydykDiplomaProject:jar">
-    <output-path>$PROJECT_DIR$/out/artifacts/BabenkoDydykDiplomaProject_jar</output-path>
-    <root id="archive" name="BabenkoDydykDiplomaProject.jar">
-      <element id="module-output" name="BabenkoDydykDiplomaProject" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../../PlahtiiJars/sqlite-jdbc-3.27.2.1.jar" path-in-jar="/" />
-    </root>
-  </artifact>
-</component>
