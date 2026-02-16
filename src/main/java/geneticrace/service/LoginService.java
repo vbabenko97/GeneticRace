@@ -101,7 +101,7 @@ public class LoginService {
                 }
 
                 // Verify bcrypt password
-                if (BCrypt.checkpw(password, user.getPasswordHash())) {
+                if (BCrypt.checkpw(password, user.passwordHash())) {
                     establishSession(user);
                     clearAttempts(username);
                     LOGGER.info("Login successful: " + username);
@@ -126,15 +126,15 @@ public class LoginService {
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(SELECT_LEGACY_PASSWORD)) {
 
-            pstmt.setString(1, user.getUsername());
+            pstmt.setString(1, user.username());
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     String legacyPassword = rs.getString("password");
                     if (password.equals(legacyPassword)) {
-                        migratePassword(user.getId(), password);
+                        migratePassword(user.id(), password);
                         establishSession(user);
-                        LOGGER.info("Login successful + migrated to bcrypt: " + user.getUsername());
+                        LOGGER.info("Login successful + migrated to bcrypt: " + user.username());
                         return AuthResult.SUCCESS;
                     }
                 }
@@ -188,10 +188,10 @@ public class LoginService {
 
     private void establishSession(User user) {
         SessionManager.getInstance().login(
-            user.getId(),
-            user.getUsername(),
-            user.getRealName(),
-            user.getRole()
+            user.id(),
+            user.username(),
+            user.realName(),
+            user.role()
         );
     }
 

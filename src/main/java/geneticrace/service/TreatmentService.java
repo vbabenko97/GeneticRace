@@ -30,6 +30,8 @@ public class TreatmentService {
     private static final Logger LOGGER = Logger.getLogger(TreatmentService.class.getName());
 
     private static final int TREATMENT_VALUES_COUNT = 9;
+    private static final DateTimeFormatter TIMESTAMP_FORMAT =
+        DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
 
     private static final String INSERT_FIRST_STAGE =
         "INSERT INTO FirstStage(patientID, x201, x202, x203, x204, x205, x206, x207, x208, x209, lastcommit) " +
@@ -247,8 +249,7 @@ public class TreatmentService {
             throw new IllegalArgumentException("Treatment must have " + TREATMENT_VALUES_COUNT + " values");
         }
 
-        String timestamp = LocalDateTime.now()
-            .format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"));
+        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(INSERT_FIRST_STAGE)) {
@@ -273,8 +274,7 @@ public class TreatmentService {
             throw new IllegalArgumentException("Treatment must have " + TREATMENT_VALUES_COUNT + " values");
         }
 
-        String timestamp = LocalDateTime.now()
-            .format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"));
+        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(INSERT_SECOND_STAGE)) {
