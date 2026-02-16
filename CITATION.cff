@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+title: GeneticRace
+message: "If you use this software, please cite the associated paper."
+type: software
+authors:
+  - family-names: Babenko
+    given-names: Vitalii
+  - family-names: Nosovets
+    given-names: Olena
+  - family-names: Davydovych
+    given-names: Ilya
+  - family-names: Petrunina
+    given-names: Olena
+  - family-names: Averianova
+    given-names: Olga
+  - family-names: Zyonh
+    given-names: Le Dai
+preferred-citation:
+  type: article
+  title: "Personalized Clinical Treatment Selection Using Genetic Algorithm and Analytic Hierarchy Process"
+  authors:
+    - family-names: Babenko
+      given-names: Vitalii
+    - family-names: Nosovets
+      given-names: Olena
+    - family-names: Davydovych
+      given-names: Ilya
+    - family-names: Petrunina
+      given-names: Olena
+    - family-names: Averianova
+      given-names: Olga
+    - family-names: Zyonh
+      given-names: Le Dai
+  journal: "Advances in Science, Technology and Engineering Systems Journal"
+  volume: 6
+  issue: 4
+  start: 406
+  end: 413
+  year: 2021
+  doi: "10.25046/aj060446"

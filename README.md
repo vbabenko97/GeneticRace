@@ -153,6 +153,21 @@ Java invokes Python scripts as subprocesses, passing JSON via `--input` CLI argu
 
 Python writes JSON to stderr, but Java reads stderr as raw text (does not parse it) and surfaces it in a `TreatmentError.SCRIPT_FAILED` result.
 
+## Publication
+
+This project implements the approach described in:
+
+> V. Babenko, O. Nosovets et al., "Personalized Clinical Treatment Selection Using Genetic Algorithm
+> and Analytic Hierarchy Process," *Advances in Science, Technology and Engineering Systems Journal*,
+> Vol. 6, No. 4, 406–413, 2021.
+> [DOI: 10.25046/aj060446](https://dx.doi.org/10.25046/aj060446)
+
+Full paper text: [docs/paper.md](docs/paper.md)
+
+## Acknowledgments
+
+The idea of transforming population-level treatment models into individualized ones using patient-specific constants was proposed by [Volodymyr Anatoliyovych Pavlov](https://bmc.fbmi.kpi.ua/en/1806/) (Павлов Володимир Анатолійович), PhD, Associate Professor, Department of Biomedical Cybernetics, Igor Sikorsky Kyiv Polytechnic Institute.
+
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE) for details.
