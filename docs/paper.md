@@ -97,23 +97,22 @@ Also noteworthy is the Ukrainian work by Nastenko et al. [47], which used Group 
 
 Let's devise the general Healthcare challenge of this research. It is to find the optimal clinical treatment for the patient. In fact, in the mathematical space of objects, the patient (object) can be represented as a multidimensional vector, where the parameters are his/her indicators. In the simplest case, 2 patient states are possible in a given space: an initial state (before treatment) and a final state (after treatment). On this basis, 2 vectors of data are given for the challenge: 
 
- describes the initial state of the patient ( are the patient's indicators before clinical treatment). 
+$\mathbf{X} = (x_1, x_2, \ldots, x_n)^T$ — describes the initial state of the patient ($x_1, x_2, \ldots, x_n$ are the patient's indicators before clinical treatment).
 
- describes the final state of the patient ( are the patient's indicators after clinical treatment). 
+$\mathbf{Y} = (y_1, y_2, \ldots, y_m)^T$ — describes the final state of the patient ($y_1, y_2, \ldots, y_m$ are the patient's indicators after clinical treatment).
 
-Finding the optimal treatment involves finding the optimum of vector . The clinical treatment, which is applied to a patient for getting the -vector, can be described by a vector  where  are the different types of drugs (the influence parameters on the patient's state). Therefore, -vector directly depends on vectors  and  (Fig. 1). 
+Finding the optimal treatment involves finding the optimum of vector $\mathbf{Y}$. The clinical treatment, which is applied to a patient for getting the $\mathbf{Y}$-vector, can be described by a vector $\mathbf{I} = (i_1, i_2, \ldots, i_k)^T$, where $i_1, i_2, \ldots, i_k$ are the different types of drugs (the influence parameters on the patient's state). Therefore, $\mathbf{Y}$-vector directly depends on vectors $\mathbf{X}$ and $\mathbf{I}$ (Fig. 1).
 
-**Figure 1: Visual representation of treatment process** 
-*(Initial state vector X -> Treatment vector I -> Final state vector Y)*
+**Figure 1: Visual representation of treatment process**
+*(Initial state vector X → Treatment vector I → Final state vector Y)*
 
 This dependency can be described by the next general equation:
 
+$$y_j = f_j(x_1, \ldots, x_n,\ i_1, \ldots, i_k), \quad j = 1, \ldots, m \qquad (1)$$
 
- (1) 
+Thus, it can be said that $\mathbf{X} = \mathbf{Y}$ if no treatment is given (without regard to externalities). Equations for $y_1, y_2, \ldots, y_m$ (1) can be both linear or non-linear, parametric or non-parametric. With their usage, it seems possible to simulate (modeling) the clinical treatment process.
 
-Thus, it can be said that  if no treatment is given (without regard to externalities). Equations for  (1) can be both linear or non-linear, parametric or non-parametric. With their usage, it seems possible to simulate (modeling) the clinical treatment process. 
-
-Consequently, a multi-criteria optimization problem arises, where it is necessary to find such values of -vector that will give the optimum of -vector. Values of -vector are set by default, so the personalized solution search will be done by considering the patient's initial state indicators (this idea was proposed in [47] for a single-criteria problem). So, it is necessary to create an algorithm that will solve such a task. 
+Consequently, a multi-criteria optimization problem arises, where it is necessary to find such values of $\mathbf{I}$-vector that will give the optimum of $\mathbf{Y}$-vector. Values of $\mathbf{X}$-vector are set by default, so the personalized solution search will be done by considering the patient's initial state indicators (this idea was proposed in [47] for a single-criteria problem). So, it is necessary to create an algorithm that will solve such a task.
 
 ---
 
@@ -121,66 +120,52 @@ Consequently, a multi-criteria optimization problem arises, where it is necessar
 
 As mentioned earlier, finding the optimal clinical treatment is a multi-criteria optimization problem. However, creating the algorithm for solving this problem raises the following issues: 
 
-* Simultaneous optimization of the -vector parameters (patient's indicators after treatment). 
+* Simultaneous optimization of the $\mathbf{Y}$-vector parameters (patient's indicators after treatment).
 
+* Searching the values of $\mathbf{I}$-vector (influence parameters on the patient's state), which gives the global optimum (NP-complete problem).
 
-* Searching the values of -vector (influence parameters on the patient's state), which gives the global optimum (NP-complete problem). 
-
-
-
-The first issue can be solved using Multi-Criteria Decision Making (MCDM) methods [50]. Since in most cases the final state of a patient is described by two or more -vector parameters (in this problem the criteria for optimization), it is worthwhile to assess the patient's state after treatment in the right way. MCDM methods allow getting a convolution of several criteria into one so-called "supercriterion". Apart from solving simultaneous optimization, this supercriterion can be used as an assessment metric to describe the final state of the patient. 
+The first issue can be solved using Multi-Criteria Decision Making (MCDM) methods [50]. Since in most cases the final state of a patient is described by two or more $\mathbf{Y}$-vector parameters (in this problem — the criteria for optimization), it is worthwhile to assess the patient's state after treatment in the right way. MCDM methods allow getting a convolution of several criteria into one so-called "supercriterion". Apart from solving simultaneous optimization, this supercriterion can be used as an assessment metric to describe the final state of the patient.
 
 One of the simplest and most easily interpreted methods of MCDM is the Analytic Hierarchy Process (AHP) [51-52], invented by Thomas L. Saaty in the 70s. This method allows getting a function of additive convolution by pairwise comparison of criteria priorities. The comparison mechanism by AHP in general form is shown in Table 1. 
 
-**Table 1: The General Form of Criteria Pairwise Comparison** 
+**Table 1: The General Form of Criteria Pairwise Comparison**
 
-|  |  |  |  |  |
-| --- | --- | --- | --- | --- |
-|  |  |  |  |  |
-|  |  |  |  |  |
-|  |  |  |  |  |
-|  |  |  |  |  |
-| <br>*where:  the sequential number in the criteria list of Y-vector, ranked by importance.* 
+|       | $y_1$           | $y_2$           | $\ldots$ | $y_m$           |
+|-------|-----------------|-----------------|----------|-----------------|
+| $y_1$ | $v_1 / v_1$     | $v_2 / v_1$     | $\ldots$ | $v_m / v_1$     |
+| $y_2$ | $v_1 / v_2$     | $v_2 / v_2$     | $\ldots$ | $v_m / v_2$     |
+| $\ldots$ | $\ldots$     | $\ldots$        | $\ldots$ | $\ldots$        |
+| $y_m$ | $v_1 / v_m$     | $v_2 / v_m$     | $\ldots$ | $v_m / v_m$     |
 
- |  |  |  |  |
+*where: $v_i$ — the sequential number in the criteria list of $\mathbf{Y}$-vector, ranked by importance.*
 
-The above table interprets the matrix of criteria pairwise comparison. To obtain a metric for the final patient state using AHP, the geometric mean for each matrix row is calculated. Then, the obtained values should be normalized; they will be the weights () of each criterion of the -vector, so the metric can be represented as follows: 
+The above table interprets the matrix of criteria pairwise comparison. To obtain a metric for the final patient state using AHP, the geometric mean for each matrix row is calculated. Then, the obtained values should be normalized; they will be the weights ($w$) of each criterion of the $\mathbf{Y}$-vector, so the metric can be represented as follows:
 
- (2) 
+$$F_{ac} = w_1 y_1 \pm w_2 y_2 \pm \ldots \pm w_m y_m \qquad (2)$$
 
-This metric is a function of additive convolution () of the criteria. It has the advantage of flexibility because it depends on priorities set out in Table 1 by the decision-maker. The signs in (2) are placed depending on whether it is necessary to maximize (then the "+" sign) or minimize (then the "-" sign) . 
+This metric is a function of additive convolution ($F_{ac}$) of the criteria. It has the advantage of flexibility because it depends on priorities set out in Table 1 by the decision-maker. The signs in (2) are placed depending on whether it is necessary to maximize (then the "+" sign) or minimize (then the "−" sign) $y_i$.
 
-That solves the first issue of the given multi-criteria optimization problem, which allows converting it to the single-criteria optimization problem, where it is necessary to find the maximum of . Solving it can be done by many optimization approaches. One of the most famous methods is the Genetic Algorithm [53-55] a stochastic method for finding the required solution. The ideas of natural selection and genetics provide a fast search for the global optimum, thus solving the second issue of the NP-complete problem. The algorithm is shown schematically in Fig. 2. 
+That solves the first issue of the given multi-criteria optimization problem, which allows converting it to the single-criteria optimization problem, where it is necessary to find the maximum of $F_{ac}$. Solving it can be done by many optimization approaches. One of the most famous methods is the Genetic Algorithm [53-55] — a stochastic method for finding the required solution. The ideas of natural selection and genetics provide a fast search for the global optimum, thus solving the second issue of the NP-complete problem. The algorithm is shown schematically in Fig. 2.
 
 **Figure 2: Genetic Algorithm scheme** *(Flowchart: Start -> Creating first population -> Calculating fitness function -> Condition end? -> No: Selection -> Genetic operators -> New population -> Loop / Yes: Choosing best individual -> End)* 
 
 To describe the Genetic Algorithm in more detail:
 
-1. A random sample ("population") of  arrays ("individuals", or "chromosomes") that contain values of -vector parameters ("genes") is created (Figure 3). The number , as well as the boundaries in which the values of genes will lie, are set directly by the researcher. 
+1. A random sample ("population") of $N$ arrays ("individuals", or "chromosomes") that contain values of $\mathbf{I}$-vector parameters ("genes") is created (Figure 3). The number $N$, as well as the boundaries in which the values of genes will lie, are set directly by the researcher.
 
+2. "Fitness function" for each individual is calculated. In the current research, the fitness function is $F_{ac}$ (2).
 
-2. "Fitness function" for each individual is calculated. In the current research, the fitness function is  (2). 
+3. The condition of the algorithm end is checked (it can be the presence of the preassigned value of $F_{ac}$ or exceeding the time limit of the algorithm).
 
+   * 3.1. If the condition is complete, the Genetic Algorithm returns the "best" individual (optimal clinical treatment strategy).
 
-3. The condition of the algorithm end is checked (it can be the presence of the preassigned value of  or exceeding the time limit of the algorithm). 
+   * 3.2. If the condition is incomplete, the formation of a new population begins.
 
+     * 3.2.1. The "selection" [53-55] of individuals from the current population is carried out. This procedure aims to select individuals for the next generation creation, and the chance of selecting each individual directly depends on the value of his fitness function. The selected individuals form $N$ pairs, which will then give "new" individuals.
 
-* 3.1. If the condition is complete, the Genetic Algorithm returns the "best" individual (optimal clinical treatment strategy). 
+     * 3.2.2. The usage of "crossover" (one of the genetic operators) [53-55] for crossing the resulting pairs of individuals. A mixing of "genes" (parameters of $\mathbf{I}$-vector) occurs between a pair of individuals, thus forming a new individual that stores the information about his "ancestors". In the general case, randomly the "crossover point" is determined, which allows mixing a pair of "parents": the genes of the first parent are before the crossover point, and after it — the genes of the second parent.
 
-
-* 3.2. If the condition is incomplete, the formation of a new population begins. 
-
-
-* 3.2.1. The "selection" [53-55] of individuals from the current population is carried out. This procedure aims to select individuals for the next generation creation, and the chance of selecting each individual directly depends on the value of his fitness function. The selected individuals form  pairs, which will then give "new" individuals. 
-
-
-* 3.2.2. The usage of "crossover" (one of the genetic operators) [53-55] for crossing the resulting pairs of individuals. A mixing of "genes" (parameters of -vector) occurs between a pair of individuals, thus forming a new individual that stores the information about his "ancestors". In the general case, randomly the "crossover point" is determined, which allows mixing a pair of "parents": the genes of the first parent are before the crossover point, and after it the genes of the second parent. 
-
-
-* 3.2.3. Back to point number 2. 
-
-
-
+     * 3.2.3. Back to point number 2.
 
 
 
@@ -192,7 +177,7 @@ To describe the Genetic Algorithm in more detail:
 
 That creates a new individual. To ensure the diversity of the population during the entire algorithm's operation, another genetic operator called "mutation" [53-55] is also used. This operator can be triggered with low probability instead of crossover, and its main purpose is to replace randomly selected genes of individuals with completely new ones. 
 
-As a result, the Genetic Algorithm has been got, where  is used as a fitness function, derived from the AHP ideology. The idea of using the convolution function (obtained by the MCDM method) as a fitness function of the Genetic Algorithm is not new. In [56], the authors used Weight Sum Approach and Tchebycheff Approach to get the convolution function. The authors of [57] were comparing Non-Dominated Sorting Genetic Algorithm II (NSGA-II), Multi-Objective Differential Evolution (MODE), and Multi-Objective Particle Swarm Optimization (MOPSO) algorithms. Such approaches are rather difficult to interpret, which makes it more complex to explain to the doctor the principle of the algorithm for finding the optimal clinical treatment. Therefore AHP was chosen to obtain a convolution function. 
+As a result, the Genetic Algorithm has been got, where $F_{ac}$ is used as a fitness function, derived from the AHP ideology. The idea of using the convolution function (obtained by the MCDM method) as a fitness function of the Genetic Algorithm is not new. In [56], the authors used Weight Sum Approach and Tchebycheff Approach to get the convolution function. The authors of [57] were comparing Non-Dominated Sorting Genetic Algorithm II (NSGA-II), Multi-Objective Differential Evolution (MODE), and Multi-Objective Particle Swarm Optimization (MOPSO) algorithms. Such approaches are rather difficult to interpret, which makes it more complex to explain to the doctor the principle of the algorithm for finding the optimal clinical treatment. Therefore AHP was chosen to obtain a convolution function. 
 
 ---
 
@@ -204,13 +189,11 @@ To test the performance of the algorithm, 2 clinical databases of patients with 
 
 The first database ("DB1") has 128 patients from 3 to 28 years. They underwent a total cavopulmonary connection (TCPC) in an extracardiac conduit modification as the final stage of hemodynamic correction between January 2005 and September 2016. Patients were treated in two phases: surgical treatment (various types of surgery were performed, including TCPC) and conservative treatment (use of medication). Only conservative treatment is considered for the research. With that in mind, the database has the following variables: 
 
-* 7 patient indicators before conservative treatment - the vector . 
+* 7 patient indicators before conservative treatment — the vector $\mathbf{X}$.
 
+* 22 types of drugs (that were used to treat patients) — the vector $\mathbf{I}$.
 
-* 22 types of drugs (that were used to treat patients) - the vector . 
-
-
-* 38 patient indicators after treatment - the vector . It is worth mentioning that patient indicators before treatment were selected with the help of doctors specifically for the research. 
+* 38 patient indicators after treatment — the vector $\mathbf{Y}$. It is worth mentioning that patient indicators before treatment were selected with the help of doctors specifically for the research.
 
 
 
@@ -266,39 +249,27 @@ The models were evaluated according to their:
 
 * accuracy (percentage of correctly classified objects):
 
-
-
- (3) 
-
+$$Accuracy = \frac{TP + TN}{TP + TN + FP + FN} \qquad (3)$$
 
 * sensitivity (share of correctly classified objects of the first class):
 
-
-
- (4) 
-
+$$Sensitivity = \frac{TP}{TP + FN} \qquad (4)$$
 
 * specificity (share of correctly classified objects of the second class):
 
-
-
- (5) 
-
+$$Specificity = \frac{TN}{TN + FP} \qquad (5)$$
 
 * Matthews Correlation Coefficient (MCC):
 
+$$MCC = \frac{TP \cdot TN - FP \cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)}} \qquad (6)$$
 
-
- (6) 
-where: TP - true positives; FP - false positives (type I error); FN - false negatives (type II error); TN - true negatives. 
-
-
+where: TP — true positives; FP — false positives (type I error); FN — false negatives (type II error); TN — true negatives.
 
 The last metric (6) is a measure of binary classification quality. Its peculiarity is to consider positive and negative results, both true and false. MCC is a balanced measure that is used even for unbalanced classification. It is a correlation coefficient between real and predicted objects: it returns a value from -1 (complete mismatch) to 1 (perfect match). At 0, the classifier is considered to have made the prediction "by chance". 
 
 Tables 2 and 3 show results of the classification, namely, the average values of the model classification metrics for each algorithm. As seen from the tables below, the RBF SVM classification algorithm performed best, showing an average model accuracy of around 100% on the test sample. 
 
-The resulting models are mathematical equations for patient indicators after treatment (1), which can be substituted in formula (2) to get . This allows using the Genetic Algorithm to derive the best clinical treatment options for patients. These options will be personalized as each of the models is substituted for patient indicators before treatment. 
+The resulting models are mathematical equations for patient indicators after treatment (1), which can be substituted in formula (2) to get $F_{ac}$. This allows using the Genetic Algorithm to derive the best clinical treatment options for patients. These options will be personalized as each of the models is substituted for patient indicators before treatment. 
 
 **Table 2: Final State Indicators Classification Results ("DB1")** 
 
@@ -311,7 +282,7 @@ The resulting models are mathematical equations for patient indicators after tre
 | Linear SVM | 79.8% | 0.801 | 0.838 | 0.474 |
 | RBF SVM | 100% | 1 | 1 | 1 |
 | GPC | 98.6% | 0.949 | 0.715 | 0.679 |
-| RFC | 99.9% | 0.996 | 0.998 |  |
+| RFC | 99.9% | 0.996 | 0.998 | — |
 | AdaBoost | 98.7% | 0.985 | 0.98 | 0.97 |
 | MLP | 87.1% | 0.862 | 0.391 | 0.323 |
 | **Test sample (20%)** |  |  |  |  |
