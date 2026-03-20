@@ -50,7 +50,6 @@ public class LoginService {
         SUCCESS,
         INVALID_CREDENTIALS,
         LOCKED_OUT,
-        NEEDS_PASSWORD_RESET,
         ERROR
     }
 

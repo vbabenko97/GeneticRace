@@ -46,7 +46,7 @@ Classification models for predicting postoperative complications (e.g. pulmonary
 - **Java 17** — application core, JavaFX desktop UI
 - **Maven** — build system
 - **SQLite** — patient and treatment data storage
-- **Python 3** — GA scripts (FirstStage.py, SecondStage.py)
+- **Python 3** — GA scripts (FirstStage.py, SecondStage.py, shared ga_core.py); standard library only, no third-party packages
 - **JUnit 5 + Mockito** — testing
 - **JaCoCo** — code coverage
 - **GitHub Actions** — CI
@@ -65,12 +65,12 @@ src/main/java/geneticrace/
 
 src/main/resources/
   fxml/           JavaFX view definitions
-  python/         GA scripts
+  python/         GA scripts (ga_core.py shared module, FirstStage.py, SecondStage.py)
   data/           Sample database
 
 src/test/java/geneticrace/
   repository/     PatientRepository tests (against sample DB)
-  service/        TreatmentService unit + integration tests, LoginService tests
+  service/        TreatmentService unit + integration tests, LoginService tests, PythonService tests
   session/        SessionManager tests
 ```
 
@@ -102,7 +102,7 @@ src/test/java/geneticrace/
    | `doctor1` | `doctor123` | Doctor |
    | `doctor2` | `doctor456` | Doctor |
 
-On first launch, the app creates `~/.geneticrace/` and copies `HeartDefects_sample.db` to `~/.geneticrace/HeartDefects.db`. Python scripts are extracted to `~/.geneticrace/scripts/`. On Windows, `~` resolves to `%USERPROFILE%` (e.g. `C:\Users\<name>\.geneticrace\`).
+On first launch, the app creates `~/.geneticrace/` and copies `HeartDefects_sample.db` to `~/.geneticrace/HeartDefects.db`. Python scripts (`ga_core.py`, `FirstStage.py`, `SecondStage.py`) are extracted to `~/.geneticrace/scripts/`. On Windows, `~` resolves to `%USERPROFILE%` (e.g. `C:\Users\<name>\.geneticrace\`).
 
 > **Note:** `mvn package` builds a JAR, but JavaFX apps require module path setup to run standalone. Use `mvn javafx:run` for development. For distribution, build a native installer with `mvn -Pnative package` (requires JDK 17+ with jpackage).
 
@@ -127,7 +127,7 @@ Tests mock the Python layer entirely, so Python is not required. The repository 
 
 ## Python IPC Protocol
 
-Java invokes Python scripts as subprocesses, passing JSON via `--input` CLI argument and reading JSON from stdout. Payloads are intentionally small (< 1 KB) to avoid OS argument length limits.
+Java invokes Python scripts as subprocesses, passing JSON via `--input` CLI argument and reading JSON from stdout. Payloads are intentionally small (< 1 KB) to avoid OS argument length limits. Shared GA logic (AHP weights, selection, crossover, mutation, main loop) lives in `ga_core.py`; each stage script provides only its GMDH models and parameter ranges.
 
 **Request** (Java -> Python via `--input`):
 ```json
@@ -166,7 +166,7 @@ Full paper text: [docs/paper.md](docs/paper.md)
 
 ## Acknowledgments
 
-The idea of transforming population-level treatment models into individualized ones using patient-specific constants was proposed by [Volodymyr Anatoliyovych Pavlov](https://bmc.fbmi.kpi.ua/en/1806/) (Павлов Володимир Анатолійович), PhD, Associate Professor, Department of Biomedical Cybernetics, Igor Sikorsky Kyiv Polytechnic Institute.
+I am grateful to [Volodymyr Anatoliyovych Pavlov](https://bmc.fbmi.kpi.ua/en/1806/) (Павлов Володимир Анатолійович), PhD, Associate Professor, Department of Biomedical Cybernetics, Igor Sikorsky Kyiv Polytechnic Institute, for early conceptual discussions on transitioning from population-level treatment models toward individualized formulations using patient-specific constants.
 
 ## License
 

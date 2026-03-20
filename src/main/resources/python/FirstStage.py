@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright © 2019, 2026. All rights reserved.
 # Authors: Vitalii Babenko, Anastasiia Dydyk
-# Refactored: 2026 - JSON IPC, CLI arguments
+# Refactored: 2026 - JSON IPC, CLI arguments, shared GA core
 
 """
 FirstStage genetic algorithm for finding operational treatment strategies.
@@ -10,22 +10,13 @@ Uses GMDH classification models and AHP optimization.
 
 import argparse
 import json
-import logging
-import logging.handlers
-import os
 import sys
-from random import randint, choices
-import copy
-from scipy.stats.mstats import gmean
+from random import randint
+
+import ga_core
 
 
-# --- Configuration constants ---
-
-POPULATION_NUMBER = 32
-POPULATION_RANGE = range(POPULATION_NUMBER)
-GA_RUNS = 20
-SOLUTION_SIZE = 9
-MAX_GENERATIONS = 500
+logger = ga_core.setup_logging("FirstStage")
 
 # Treatment parameter ranges for operational treatment (x201-x209)
 X201_RANGE = (1, 10000)    # scaled by /100
@@ -38,34 +29,21 @@ X207_RANGE = (1, 2)
 X208_RANGE = (1, 2)
 X209_RANGE = (1, 2)
 
-# --- Logging setup ---
 
-def _setup_logging():
-    """Configure logging to a rotating file. Falls back to NullHandler."""
-    logger = logging.getLogger("FirstStage")
-    logger.setLevel(logging.INFO)
+def random_solution():
+    """Generate a single random treatment solution."""
+    return [
+        randint(*X201_RANGE) / 100,
+        randint(*X202_RANGE) / 100,
+        randint(*X203_RANGE),
+        randint(*X204_RANGE),
+        randint(*X205_RANGE),
+        randint(*X206_RANGE),
+        randint(*X207_RANGE),
+        randint(*X208_RANGE),
+        randint(*X209_RANGE),
+    ]
 
-    log_dir = os.path.expanduser("~/.geneticrace/logs")
-    try:
-        os.makedirs(log_dir, exist_ok=True)
-        handler = logging.handlers.RotatingFileHandler(
-            os.path.join(log_dir, "ga.log"),
-            maxBytes=1_000_000,
-            backupCount=3,
-        )
-        handler.setFormatter(logging.Formatter(
-            "%(asctime)s [%(name)s] %(levelname)s %(message)s"
-        ))
-        logger.addHandler(handler)
-    except OSError:
-        logger.addHandler(logging.NullHandler())
-
-    return logger
-
-logger = _setup_logging()
-
-
-# --- GA functions ---
 
 def calculate_criterions(x_list, sol_list):
     """Calculate condition criteria for a list of solutions."""
@@ -129,151 +107,6 @@ def calculate_perfect_value(x_list, coeff_list):
     return round(saati_value, 15)
 
 
-def saati_method():
-    """Calculate AHP priority vectors."""
-    first_row = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
-    relationship_matrix = [first_row]
-
-    for i in range(2, 10):
-        relationship_matrix.append([v / i for v in first_row])
-
-    gmean_list = [gmean(row) for row in relationship_matrix]
-    total = sum(gmean_list)
-    return [g / total for g in gmean_list]
-
-
-def _random_solution():
-    """Generate a single random treatment solution."""
-    return [
-        randint(*X201_RANGE) / 100,
-        randint(*X202_RANGE) / 100,
-        randint(*X203_RANGE),
-        randint(*X204_RANGE),
-        randint(*X205_RANGE),
-        randint(*X206_RANGE),
-        randint(*X207_RANGE),
-        randint(*X208_RANGE),
-        randint(*X209_RANGE),
-    ]
-
-
-def generate_first_population():
-    """Generate initial random population of treatment solutions."""
-    return [_random_solution() for _ in range(POPULATION_NUMBER)]
-
-
-def calculate_saati(coeff_list, criterion_list):
-    """Calculate Saati values for all solutions."""
-    return [
-        round(sum(-c * coeff for c, coeff in zip(c_list, coeff_list)), 15)
-        for c_list in criterion_list
-    ]
-
-
-def get_discrepancies(perfect_value, saati_list):
-    """Calculate discrepancies from perfect value."""
-    return [perfect_value - s for s in saati_list]
-
-
-def get_probabilities(disc_list):
-    """Convert discrepancies to selection probabilities."""
-    inv_list = [1 / d for d in disc_list]
-    total = sum(inv_list)
-    return [i / total for i in inv_list]
-
-
-def get_mothers(father_list, prob_list):
-    """Select mother indices for crossover."""
-    mother_list = []
-    for i in range(POPULATION_NUMBER):
-        m = choices(POPULATION_RANGE, prob_list)[0]
-        while m == father_list[i]:
-            m = choices(POPULATION_RANGE, prob_list)[0]
-        mother_list.append(m)
-    return mother_list
-
-
-def crossover(sol_list, temp_sol_list, father_list, mother_list):
-    """Perform crossover between parent solutions."""
-    for i in range(POPULATION_NUMBER):
-        j, k = father_list[i], mother_list[i]
-        for l in range(SOLUTION_SIZE):
-            if l < (i % 8) + 1:
-                sol_list[i][l] = temp_sol_list[j if (i % 16) < 8 else k][l]
-            else:
-                sol_list[i][l] = temp_sol_list[k if (i % 16) < 8 else j][l]
-    return sol_list
-
-
-def mutation(sol_list):
-    """Apply mutation to population."""
-    for i in range(1, POPULATION_NUMBER):
-        sol_list[i] = _random_solution()
-    return sol_list
-
-
-def calculate_treatment(x_list):
-    """Main genetic algorithm for finding optimal treatment strategies."""
-    coeff_list = saati_method()
-    perfect_value = calculate_perfect_value(x_list, coeff_list)
-
-    treatment_list = []
-    complication_list = []
-
-    logger.info("Starting treatment calculation with %d runs", GA_RUNS)
-
-    for run in range(GA_RUNS):
-        sol_list = generate_first_population()
-        mean_list = []
-
-        for generation in range(MAX_GENERATIONS):
-            criterion_list = calculate_criterions(x_list, sol_list)
-            saati_list = calculate_saati(coeff_list, criterion_list)
-
-            # Check for optimal solution
-            for i in range(POPULATION_NUMBER):
-                if saati_list[i] == perfect_value:
-                    treatment_list.append(sol_list[i])
-                    complication_list.append(criterion_list[i])
-                    break
-            else:
-                # No optimal found, continue evolution
-                disc_list = get_discrepancies(perfect_value, saati_list)
-                mean_disc = sum(disc_list) / len(disc_list)
-                mean_list.append(mean_disc)
-
-                if len(mean_list) > 2 and mean_list[-2] == mean_list[-1]:
-                    sol_list = mutation(copy.deepcopy(sol_list))
-                else:
-                    prob_list = get_probabilities(disc_list)
-                    father_list = choices(POPULATION_RANGE, prob_list, k=POPULATION_NUMBER)
-
-                    if len(set(father_list)) <= 1:
-                        treatment_list.append(sol_list[father_list[0]])
-                        complication_list.append(criterion_list[father_list[0]])
-                        break
-
-                    mother_list = get_mothers(father_list, prob_list)
-                    temp_sol_list = copy.deepcopy(sol_list)
-                    sol_list = crossover(sol_list, temp_sol_list, father_list, mother_list)
-                continue
-            break
-        else:
-            # Generation limit reached — take the best solution from final population
-            disc_list = get_discrepancies(perfect_value, saati_list)
-            best_idx = min(range(POPULATION_NUMBER), key=lambda i: disc_list[i])
-            treatment_list.append(sol_list[best_idx])
-            complication_list.append(criterion_list[best_idx])
-            logger.warning("Run %d hit generation limit (%d)", run, MAX_GENERATIONS)
-
-    logger.info("Found %d treatment solutions", len(treatment_list))
-
-    return {
-        "treatments": treatment_list[:5],
-        "complications": complication_list[0] if complication_list else []
-    }
-
-
 def main():
     parser = argparse.ArgumentParser(description="FirstStage GA for treatment optimization")
     parser.add_argument("--input", type=str, required=True, help="JSON input with xList")
@@ -286,7 +119,8 @@ def main():
         if len(x_list) != 12:
             raise ValueError(f"Expected 12 input values, got {len(x_list)}")
 
-        result = calculate_treatment(x_list)
+        result = ga_core.run_ga(
+            x_list, random_solution, calculate_criterions, calculate_perfect_value, logger)
         print(json.dumps(result))
 
     except Exception as e:

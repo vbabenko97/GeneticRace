@@ -153,8 +153,7 @@ class TreatmentServiceTest {
 
         TreatmentService.TreatmentResult result = service.calculateFirstStage(1);
 
-        assertTrue(result.isSuccess());
-        assertNull(result.errorType);
+        assertInstanceOf(TreatmentService.TreatmentResult.Success.class, result);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Double>> captor = ArgumentCaptor.forClass(List.class);
@@ -175,8 +174,9 @@ class TreatmentServiceTest {
 
         TreatmentService.TreatmentResult result = service.calculateFirstStage(1);
 
-        assertFalse(result.isSuccess());
-        assertEquals(TreatmentError.PATIENT_NOT_FOUND, result.errorType);
+        assertInstanceOf(TreatmentService.TreatmentResult.Failure.class, result);
+        var failure = (TreatmentService.TreatmentResult.Failure) result;
+        assertEquals(TreatmentError.PATIENT_NOT_FOUND, failure.errorType());
     }
 
     @Test
@@ -190,9 +190,10 @@ class TreatmentServiceTest {
 
         TreatmentService.TreatmentResult result = service.calculateFirstStage(1);
 
-        assertFalse(result.isSuccess());
-        assertEquals(TreatmentError.INVALID_CLINICAL_DATA, result.errorType);
-        assertTrue(result.error.contains("Invalid clinical data"));
+        assertInstanceOf(TreatmentService.TreatmentResult.Failure.class, result);
+        var failure = (TreatmentService.TreatmentResult.Failure) result;
+        assertEquals(TreatmentError.INVALID_CLINICAL_DATA, failure.errorType());
+        assertTrue(failure.message().contains("Invalid clinical data"));
     }
 
     @Test
@@ -209,9 +210,10 @@ class TreatmentServiceTest {
 
         TreatmentService.TreatmentResult result = service.calculateFirstStage(1);
 
-        assertFalse(result.isSuccess());
-        assertEquals(TreatmentError.SCRIPT_FAILED, result.errorType);
-        assertEquals("Script crashed", result.error);
+        assertInstanceOf(TreatmentService.TreatmentResult.Failure.class, result);
+        var failure = (TreatmentService.TreatmentResult.Failure) result;
+        assertEquals(TreatmentError.SCRIPT_FAILED, failure.errorType());
+        assertEquals("Script crashed", failure.message());
     }
 
     // calculateSecondStage tests
@@ -232,8 +234,7 @@ class TreatmentServiceTest {
 
         TreatmentService.TreatmentResult result = service.calculateSecondStage(1);
 
-        assertTrue(result.isSuccess());
-        assertNull(result.errorType);
+        assertInstanceOf(TreatmentService.TreatmentResult.Success.class, result);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Double>> captor = ArgumentCaptor.forClass(List.class);
@@ -252,8 +253,9 @@ class TreatmentServiceTest {
 
         TreatmentService.TreatmentResult result = service.calculateSecondStage(1);
 
-        assertFalse(result.isSuccess());
-        assertEquals(TreatmentError.PATIENT_NOT_FOUND, result.errorType);
+        assertInstanceOf(TreatmentService.TreatmentResult.Failure.class, result);
+        var failure = (TreatmentService.TreatmentResult.Failure) result;
+        assertEquals(TreatmentError.PATIENT_NOT_FOUND, failure.errorType());
     }
 
     @Test
@@ -263,9 +265,10 @@ class TreatmentServiceTest {
 
         TreatmentService.TreatmentResult result = service.calculateSecondStage(1);
 
-        assertFalse(result.isSuccess());
-        assertEquals(TreatmentError.NO_POST_CONDITION_DATA, result.errorType);
-        assertTrue(result.error.contains("Іванов"));
+        assertInstanceOf(TreatmentService.TreatmentResult.Failure.class, result);
+        var failure = (TreatmentService.TreatmentResult.Failure) result;
+        assertEquals(TreatmentError.NO_POST_CONDITION_DATA, failure.errorType());
+        assertTrue(failure.message().contains("Іванов"));
     }
 
     @Test
@@ -280,8 +283,43 @@ class TreatmentServiceTest {
 
         TreatmentService.TreatmentResult result = service.calculateSecondStage(1);
 
-        assertFalse(result.isSuccess());
-        assertEquals(TreatmentError.INVALID_CLINICAL_DATA, result.errorType);
-        assertTrue(result.error.contains("Invalid post-condition data"));
+        assertInstanceOf(TreatmentService.TreatmentResult.Failure.class, result);
+        var failure = (TreatmentService.TreatmentResult.Failure) result;
+        assertEquals(TreatmentError.INVALID_CLINICAL_DATA, failure.errorType());
+        assertTrue(failure.message().contains("Invalid post-condition data"));
+    }
+
+    // Save delegation tests
+
+    @Test
+    void saveFirstStageResultDelegatesToRepository() throws Exception {
+        List<Double> treatment = List.of(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
+        when(patientRepository.saveFirstStageResult(1, treatment)).thenReturn(true);
+
+        assertTrue(service.saveFirstStageResult(1, treatment));
+        verify(patientRepository).saveFirstStageResult(1, treatment);
+    }
+
+    @Test
+    void saveSecondStageResultDelegatesToRepository() throws Exception {
+        List<Double> treatment = List.of(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
+        when(patientRepository.saveSecondStageResult(1, treatment)).thenReturn(true);
+
+        assertTrue(service.saveSecondStageResult(1, treatment));
+        verify(patientRepository).saveSecondStageResult(1, treatment);
+    }
+
+    @Test
+    void saveFirstStageRejectsInsufficientValues() {
+        List<Double> tooFew = List.of(1.0, 2.0, 3.0);
+        assertThrows(IllegalArgumentException.class,
+            () -> service.saveFirstStageResult(1, tooFew));
+    }
+
+    @Test
+    void saveSecondStageRejectsInsufficientValues() {
+        List<Double> tooFew = List.of(1.0, 2.0, 3.0);
+        assertThrows(IllegalArgumentException.class,
+            () -> service.saveSecondStageResult(1, tooFew));
     }
 }

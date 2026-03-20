@@ -131,6 +131,19 @@ public class SessionManager {
         return currentPatientId != null;
     }
 
+    /**
+     * Resets the singleton so the next {@link #getInstance()} call creates
+     * a fresh instance. Package-private — intended for test isolation only.
+     */
+    static void resetInstance() {
+        synchronized (SessionManager.class) {
+            if (instance != null) {
+                instance.logout();
+            }
+            instance = null;
+        }
+    }
+
     // For testing: allow access to lastActivityTime
     long getLastActivityTime() {
         return lastActivityTime;

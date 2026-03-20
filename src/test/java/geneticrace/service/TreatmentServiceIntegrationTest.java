@@ -6,6 +6,7 @@ import geneticrace.model.SecondStageData;
 import geneticrace.repository.PatientDataPort;
 import org.junit.jupiter.api.Test;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,9 +44,21 @@ class TreatmentServiceIntegrationTest {
         return r;
     }
 
+    /** Stub that throws for save operations (they aren't exercised in calculation tests). */
+    private static abstract class ReadOnlyDataPort implements PatientDataPort {
+        @Override
+        public boolean saveFirstStageResult(int patientId, List<Double> treatment) throws SQLException {
+            throw new UnsupportedOperationException("Not used in this test");
+        }
+        @Override
+        public boolean saveSecondStageResult(int patientId, List<Double> treatment) throws SQLException {
+            throw new UnsupportedOperationException("Not used in this test");
+        }
+    }
+
     @Test
     void firstStagePipelineEndToEnd() {
-        PatientDataPort fakeRepo = new PatientDataPort() {
+        PatientDataPort fakeRepo = new ReadOnlyDataPort() {
             @Override
             public Optional<FirstStageData> getFirstStageData(int patientId) {
                 return patientId == 42 ? Optional.of(FIRST_STAGE_DATA) : Optional.empty();
@@ -79,16 +92,16 @@ class TreatmentServiceIntegrationTest {
         TreatmentService service = new TreatmentService(fakeRepo, fakePython);
         TreatmentService.TreatmentResult result = service.calculateFirstStage(42);
 
-        assertTrue(result.isSuccess());
-        assertNull(result.errorType);
-        assertEquals(2, result.treatments.size());
-        assertEquals(9, result.treatments.get(0).size());
-        assertEquals(List.of(1, 2), result.complications);
+        assertInstanceOf(TreatmentService.TreatmentResult.Success.class, result);
+        var success = (TreatmentService.TreatmentResult.Success) result;
+        assertEquals(2, success.treatments().size());
+        assertEquals(9, success.treatments().get(0).size());
+        assertEquals(List.of(1, 2), success.complications());
     }
 
     @Test
     void secondStagePipelineEndToEnd() {
-        PatientDataPort fakeRepo = new PatientDataPort() {
+        PatientDataPort fakeRepo = new ReadOnlyDataPort() {
             @Override
             public Optional<FirstStageData> getFirstStageData(int patientId) {
                 return Optional.empty();
@@ -121,14 +134,14 @@ class TreatmentServiceIntegrationTest {
         TreatmentService service = new TreatmentService(fakeRepo, fakePython);
         TreatmentService.TreatmentResult result = service.calculateSecondStage(42);
 
-        assertTrue(result.isSuccess());
-        assertNull(result.errorType);
-        assertEquals(2, result.treatments.size());
+        assertInstanceOf(TreatmentService.TreatmentResult.Success.class, result);
+        var success = (TreatmentService.TreatmentResult.Success) result;
+        assertEquals(2, success.treatments().size());
     }
 
     @Test
     void firstStageNotFoundPropagatesCorrectly() {
-        PatientDataPort emptyRepo = new PatientDataPort() {
+        PatientDataPort emptyRepo = new ReadOnlyDataPort() {
             @Override
             public Optional<FirstStageData> getFirstStageData(int id) {
                 return Optional.empty();
@@ -155,11 +168,13 @@ class TreatmentServiceIntegrationTest {
         TreatmentService service = new TreatmentService(emptyRepo, neverCalled);
 
         TreatmentService.TreatmentResult r1 = service.calculateFirstStage(999);
-        assertFalse(r1.isSuccess());
-        assertEquals(TreatmentError.PATIENT_NOT_FOUND, r1.errorType);
+        assertInstanceOf(TreatmentService.TreatmentResult.Failure.class, r1);
+        assertEquals(TreatmentError.PATIENT_NOT_FOUND,
+            ((TreatmentService.TreatmentResult.Failure) r1).errorType());
 
         TreatmentService.TreatmentResult r2 = service.calculateSecondStage(999);
-        assertFalse(r2.isSuccess());
-        assertEquals(TreatmentError.PATIENT_NOT_FOUND, r2.errorType);
+        assertInstanceOf(TreatmentService.TreatmentResult.Failure.class, r2);
+        assertEquals(TreatmentError.PATIENT_NOT_FOUND,
+            ((TreatmentService.TreatmentResult.Failure) r2).errorType());
     }
 }

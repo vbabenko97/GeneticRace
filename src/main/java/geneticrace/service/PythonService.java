@@ -24,74 +24,93 @@ import java.util.logging.Logger;
 public class PythonService implements PythonServicePort {
     private static final Logger LOGGER = Logger.getLogger(PythonService.class.getName());
     private static final Gson GSON = new Gson();
-    
+
+    private static final String GA_CORE_MODULE = "ga_core.py";
     private static final String FIRST_STAGE_SCRIPT = "FirstStage.py";
     private static final String SECOND_STAGE_SCRIPT = "SecondStage.py";
     private static final int TIMEOUT_SECONDS = 120;
-    
+
     private final Path scriptsDirectory;
     private boolean scriptsExtracted = false;
-    
+
     public PythonService() {
         this.scriptsDirectory = AppConfig.getPythonScriptsDirectory();
     }
-    
+
     /**
      * Runs the FirstStage genetic algorithm.
-     * 
+     *
      * @param xList Input clinical values (12 elements)
      * @return GA result with treatment suggestions
      */
     public PythonServicePort.GaResult runFirstStage(List<Double> xList) throws IOException, InterruptedException {
         ensureScriptsExtracted();
-        
+
         JsonObject input = new JsonObject();
         input.add("xList", GSON.toJsonTree(xList));
-        
+
         return executeScript(FIRST_STAGE_SCRIPT, input.toString());
     }
-    
+
     /**
      * Runs the SecondStage genetic algorithm.
-     * 
+     *
      * @param xList Input post-condition values (9 elements)
      * @return GA result with treatment suggestions
      */
     public PythonServicePort.GaResult runSecondStage(List<Double> xList) throws IOException, InterruptedException {
         ensureScriptsExtracted();
-        
+
         JsonObject input = new JsonObject();
         input.add("xList", GSON.toJsonTree(xList));
-        
+
         return executeScript(SECOND_STAGE_SCRIPT, input.toString());
     }
-    
-    private PythonServicePort.GaResult executeScript(String scriptName, String jsonInput) 
+
+    private PythonServicePort.GaResult executeScript(String scriptName, String jsonInput)
             throws IOException, InterruptedException {
-        
+
         Path scriptPath = scriptsDirectory.resolve(scriptName);
-        
+
         if (!Files.exists(scriptPath)) {
             PythonServicePort.GaResult error = new PythonServicePort.GaResult();
             error.error = "Script not found: " + scriptPath;
             return error;
         }
-        
+
         String pythonExe = AppConfig.getPythonExecutable();
-        
+
         ProcessBuilder pb = new ProcessBuilder(
             pythonExe,
             scriptPath.toString(),
             "--input", jsonInput
         );
-        
+
         pb.redirectErrorStream(false);
-        
-        LOGGER.info("Executing: " + String.join(" ", pb.command()));
-        
+
+        LOGGER.info("Executing script: " + scriptName);
+
         Process process = pb.start();
-        
-        // Read stdout
+
+        // Read stderr in a separate thread to prevent deadlock:
+        // if both stdout and stderr buffers fill, the process blocks and
+        // sequential reads on the Java side would also block.
+        StringBuilder stderr = new StringBuilder();
+        Thread stderrReader = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    stderr.append(line).append("\n");
+                }
+            } catch (IOException e) {
+                LOGGER.log(Level.FINE, "Error reading script stderr", e);
+            }
+        }, "stderr-reader");
+        stderrReader.setDaemon(true);
+        stderrReader.start();
+
+        // Read stdout on the calling thread
         StringBuilder stdout = new StringBuilder();
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(process.getInputStream()))) {
@@ -100,46 +119,50 @@ public class PythonService implements PythonServicePort {
                 stdout.append(line);
             }
         }
-        
-        // Read stderr
-        StringBuilder stderr = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getErrorStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                stderr.append(line).append("\n");
-            }
-        }
-        
+
         boolean completed = process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        
+
         if (!completed) {
             process.destroyForcibly();
+            stderrReader.interrupt();
             PythonServicePort.GaResult error = new PythonServicePort.GaResult();
             error.error = "Script timed out after " + TIMEOUT_SECONDS + " seconds";
             return error;
         }
-        
-        int exitCode = process.exitValue();
-        
+
+        // Wait for stderr reader to finish (it should be done since process exited)
+        stderrReader.join(1000);
+
+        return parseOutput(stdout.toString(), stderr.toString(), process.exitValue());
+    }
+
+    /**
+     * Parses script output into a GaResult. Package-private for testability.
+     */
+    PythonServicePort.GaResult parseOutput(String stdout, String stderr, int exitCode) {
         if (exitCode != 0) {
             LOGGER.warning("Script failed with exit code " + exitCode + ": " + stderr);
             PythonServicePort.GaResult error = new PythonServicePort.GaResult();
-            error.error = "Script failed: " + stderr.toString().trim();
+            error.error = "Script failed: " + stderr.trim();
             return error;
         }
-        
-        // Parse JSON output
+
         try {
-            return GSON.fromJson(stdout.toString(), PythonServicePort.GaResult.class);
+            PythonServicePort.GaResult parsed = GSON.fromJson(stdout, PythonServicePort.GaResult.class);
+            if (parsed == null) {
+                PythonServicePort.GaResult error = new PythonServicePort.GaResult();
+                error.error = "Script produced no output";
+                return error;
+            }
+            return parsed;
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Failed to parse script output: " + stdout, e);
+            LOGGER.log(Level.WARNING, "Failed to parse script output", e);
             PythonServicePort.GaResult error = new PythonServicePort.GaResult();
             error.error = "Failed to parse output: " + e.getMessage();
             return error;
         }
     }
-    
+
     /**
      * Extracts Python scripts from JAR resources to the scripts directory.
      */
@@ -147,17 +170,18 @@ public class PythonService implements PythonServicePort {
         if (scriptsExtracted) {
             return;
         }
-        
+
+        extractScript("/python/" + GA_CORE_MODULE, GA_CORE_MODULE);
         extractScript("/python/" + FIRST_STAGE_SCRIPT, FIRST_STAGE_SCRIPT);
         extractScript("/python/" + SECOND_STAGE_SCRIPT, SECOND_STAGE_SCRIPT);
-        
+
         scriptsExtracted = true;
         LOGGER.info("Python scripts extracted to: " + scriptsDirectory);
     }
-    
+
     private void extractScript(String resourcePath, String targetName) throws IOException {
         Path targetPath = scriptsDirectory.resolve(targetName);
-        
+
         // Always overwrite to ensure latest version
         try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
             if (is == null) {
@@ -165,7 +189,7 @@ public class PythonService implements PythonServicePort {
             }
             Files.copy(is, targetPath, StandardCopyOption.REPLACE_EXISTING);
         }
-        
+
         // Make executable on Unix
         if (!System.getProperty("os.name").toLowerCase().contains("win")) {
             targetPath.toFile().setExecutable(true);

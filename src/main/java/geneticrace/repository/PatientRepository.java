@@ -14,6 +14,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -214,6 +216,47 @@ public class PatientRepository implements PatientDataPort {
             rs.getString("avb"),
             rs.getString("snd")
         );
+    }
+
+    private static final int TREATMENT_VALUES_COUNT = 9;
+    private static final DateTimeFormatter TIMESTAMP_FORMAT =
+        DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+
+    private static final String INSERT_FIRST_STAGE =
+        "INSERT INTO FirstStage(patientID, x201, x202, x203, x204, x205, x206, x207, x208, x209, lastcommit) " +
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    private static final String INSERT_SECOND_STAGE =
+        "INSERT INTO SecondStage(patientID, x401, x402, x403, x404, x405, x406, x407, x408, x409, lastcommit) " +
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    @Override
+    public boolean saveFirstStageResult(int patientId, List<Double> treatment) throws SQLException {
+        return saveStageResult(patientId, treatment, INSERT_FIRST_STAGE, "FirstStage");
+    }
+
+    @Override
+    public boolean saveSecondStageResult(int patientId, List<Double> treatment) throws SQLException {
+        return saveStageResult(patientId, treatment, INSERT_SECOND_STAGE, "SecondStage");
+    }
+
+    private boolean saveStageResult(int patientId, List<Double> treatment,
+                                    String sql, String stageName) throws SQLException {
+        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, patientId);
+            for (int i = 0; i < TREATMENT_VALUES_COUNT; i++) {
+                pstmt.setDouble(i + 2, treatment.get(i));
+            }
+            pstmt.setString(11, timestamp);
+
+            int rows = pstmt.executeUpdate();
+            LOGGER.info("Saved " + stageName + " result for patient " + patientId);
+            return rows > 0;
+        }
     }
 
     private Patient mapPatient(ResultSet rs) throws SQLException {

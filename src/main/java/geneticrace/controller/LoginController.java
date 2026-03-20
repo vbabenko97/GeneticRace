@@ -75,11 +75,6 @@ public class LoginController {
                 showError("Забагато спроб. Спробуйте через 5 хвилин");
                 break;
 
-            case NEEDS_PASSWORD_RESET:
-                LOGGER.info("Password reset required for user: " + username);
-                navigateToPasswordReset();
-                break;
-
             case ERROR:
                 showError("Помилка системи. Спробуйте пізніше");
                 break;
@@ -95,19 +90,6 @@ public class LoginController {
         LOGGER.warning("Login error: " + message);
     }
     
-    private void navigateToPasswordReset() {
-        try {
-            Stage currentStage = (Stage) loginBtn.getScene().getWindow();
-            currentStage.close();
-
-            NavigationHelper.openNewWindow(
-                "/fxml/PasswordResetView.fxml", "Зміна пароля", Modality.APPLICATION_MODAL);
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Failed to open password reset", e);
-            showError("Не вдалося відкрити зміну пароля");
-        }
-    }
-
     private void navigateToMainMenu() {
         try {
             Stage currentStage = (Stage) loginBtn.getScene().getWindow();

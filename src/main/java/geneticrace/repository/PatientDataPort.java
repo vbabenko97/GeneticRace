@@ -9,6 +9,7 @@ import geneticrace.model.Patient;
 import geneticrace.model.SecondStageData;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -39,4 +40,18 @@ public interface PatientDataPort {
      *         PatientHasNoPostConditions if patient exists but has no PC row
      */
     Optional<SecondStageResult> getSecondStageData(int patientId) throws SQLException;
+
+    /**
+     * Saves a FirstStage treatment result for a patient.
+     * @param treatment exactly 9 treatment parameter values
+     * @return true if the row was inserted
+     */
+    boolean saveFirstStageResult(int patientId, List<Double> treatment) throws SQLException;
+
+    /**
+     * Saves a SecondStage treatment result for a patient.
+     * @param treatment exactly 9 treatment parameter values
+     * @return true if the row was inserted
+     */
+    boolean saveSecondStageResult(int patientId, List<Double> treatment) throws SQLException;
 }

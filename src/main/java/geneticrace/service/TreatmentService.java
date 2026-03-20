@@ -4,7 +4,6 @@
 
 package geneticrace.service;
 
-import geneticrace.db.DatabaseConnection;
 import geneticrace.model.FirstStageData;
 import geneticrace.model.SecondStageData;
 import geneticrace.repository.PatientDataPort;
@@ -12,11 +11,7 @@ import geneticrace.repository.PatientDataPort.SecondStageResult;
 import geneticrace.repository.PatientRepository;
 import javafx.concurrent.Task;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -30,16 +25,6 @@ public class TreatmentService {
     private static final Logger LOGGER = Logger.getLogger(TreatmentService.class.getName());
 
     private static final int TREATMENT_VALUES_COUNT = 9;
-    private static final DateTimeFormatter TIMESTAMP_FORMAT =
-        DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-
-    private static final String INSERT_FIRST_STAGE =
-        "INSERT INTO FirstStage(patientID, x201, x202, x203, x204, x205, x206, x207, x208, x209, lastcommit) " +
-        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-    private static final String INSERT_SECOND_STAGE =
-        "INSERT INTO SecondStage(patientID, x401, x402, x403, x404, x405, x406, x407, x408, x409, lastcommit) " +
-        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private final PatientDataPort patientRepository;
     private final PythonServicePort pythonService;
@@ -54,24 +39,12 @@ public class TreatmentService {
     }
 
     /**
-     * Result containing treatment suggestions and complications.
+     * Result of a treatment calculation — either a successful set of
+     * treatment strategies or a typed failure.
      */
-    public static class TreatmentResult {
-        public List<List<Double>> treatments;
-        public List<Integer> complications;
-        public TreatmentError errorType;
-        public String error;
-
-        public boolean isSuccess() {
-            return error == null && treatments != null && !treatments.isEmpty();
-        }
-
-        static TreatmentResult failure(TreatmentError type, String message) {
-            TreatmentResult r = new TreatmentResult();
-            r.errorType = type;
-            r.error = message;
-            return r;
-        }
+    public sealed interface TreatmentResult {
+        record Success(List<List<Double>> treatments, List<Integer> complications) implements TreatmentResult {}
+        record Failure(TreatmentError errorType, String message) implements TreatmentResult {}
     }
 
     /**
@@ -80,9 +53,9 @@ public class TreatmentService {
      *
      * Example:
      * <pre>
-     * Task<TreatmentResult> task = service.createFirstStageTask(patientId);
-     * task.setOnSucceeded(e -> handleResult(task.getValue()));
-     * task.setOnFailed(e -> handleError(task.getException()));
+     * Task&lt;TreatmentResult&gt; task = service.createFirstStageTask(patientId);
+     * task.setOnSucceeded(e -&gt; handleResult(task.getValue()));
+     * task.setOnFailed(e -&gt; handleError(task.getException()));
      * new Thread(task).start();
      * </pre>
      */
@@ -116,7 +89,7 @@ public class TreatmentService {
             Optional<FirstStageData> optData = patientRepository.getFirstStageData(patientId);
 
             if (optData.isEmpty()) {
-                return TreatmentResult.failure(TreatmentError.PATIENT_NOT_FOUND,
+                return new TreatmentResult.Failure(TreatmentError.PATIENT_NOT_FOUND,
                     "Patient data not found");
             }
 
@@ -132,26 +105,22 @@ public class TreatmentService {
                     parseFirstStageValue(data.x112())
                 );
             } catch (IllegalArgumentException e) {
-                return TreatmentResult.failure(TreatmentError.INVALID_CLINICAL_DATA,
+                return new TreatmentResult.Failure(TreatmentError.INVALID_CLINICAL_DATA,
                     "Invalid clinical data: " + e.getMessage());
             }
 
             PythonServicePort.GaResult gaResult = pythonService.runFirstStage(xList);
 
             if (!gaResult.isSuccess()) {
-                return TreatmentResult.failure(TreatmentError.SCRIPT_FAILED, gaResult.error);
+                return new TreatmentResult.Failure(TreatmentError.SCRIPT_FAILED, gaResult.error);
             }
 
-            TreatmentResult result = new TreatmentResult();
-            result.treatments = gaResult.treatments;
-            result.complications = gaResult.complications;
-
             LOGGER.info("FirstStage calculation completed for patient " + patientId);
-            return result;
+            return new TreatmentResult.Success(gaResult.treatments, gaResult.complications);
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "FirstStage calculation failed", e);
-            return TreatmentResult.failure(TreatmentError.CALCULATION_FAILED,
+            return new TreatmentResult.Failure(TreatmentError.CALCULATION_FAILED,
                 "Calculation failed: " + e.getMessage());
         }
     }
@@ -164,13 +133,13 @@ public class TreatmentService {
             Optional<SecondStageResult> optResult = patientRepository.getSecondStageData(patientId);
 
             if (optResult.isEmpty()) {
-                return TreatmentResult.failure(TreatmentError.PATIENT_NOT_FOUND,
+                return new TreatmentResult.Failure(TreatmentError.PATIENT_NOT_FOUND,
                     "Patient not found");
             }
 
             SecondStageResult secondStageResult = optResult.get();
             if (secondStageResult instanceof SecondStageResult.PatientHasNoPostConditions noPC) {
-                return TreatmentResult.failure(TreatmentError.NO_POST_CONDITION_DATA,
+                return new TreatmentResult.Failure(TreatmentError.NO_POST_CONDITION_DATA,
                     "Patient " + noPC.patient().surname() + " has no post-condition data");
             }
 
@@ -189,26 +158,22 @@ public class TreatmentService {
                     parseSecondStageValue(data.snd())
                 );
             } catch (IllegalArgumentException e) {
-                return TreatmentResult.failure(TreatmentError.INVALID_CLINICAL_DATA,
+                return new TreatmentResult.Failure(TreatmentError.INVALID_CLINICAL_DATA,
                     "Invalid post-condition data: " + e.getMessage());
             }
 
             PythonServicePort.GaResult gaResult = pythonService.runSecondStage(xList);
 
             if (!gaResult.isSuccess()) {
-                return TreatmentResult.failure(TreatmentError.SCRIPT_FAILED, gaResult.error);
+                return new TreatmentResult.Failure(TreatmentError.SCRIPT_FAILED, gaResult.error);
             }
 
-            TreatmentResult result = new TreatmentResult();
-            result.treatments = gaResult.treatments;
-            result.complications = gaResult.complications;
-
             LOGGER.info("SecondStage calculation completed for patient " + patientId);
-            return result;
+            return new TreatmentResult.Success(gaResult.treatments, gaResult.complications);
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "SecondStage calculation failed", e);
-            return TreatmentResult.failure(TreatmentError.CALCULATION_FAILED,
+            return new TreatmentResult.Failure(TreatmentError.CALCULATION_FAILED,
                 "Calculation failed: " + e.getMessage());
         }
     }
@@ -248,22 +213,7 @@ public class TreatmentService {
         if (treatment.size() < TREATMENT_VALUES_COUNT) {
             throw new IllegalArgumentException("Treatment must have " + TREATMENT_VALUES_COUNT + " values");
         }
-
-        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(INSERT_FIRST_STAGE)) {
-
-            pstmt.setInt(1, patientId);
-            for (int i = 0; i < TREATMENT_VALUES_COUNT; i++) {
-                pstmt.setDouble(i + 2, treatment.get(i));
-            }
-            pstmt.setString(11, timestamp);
-
-            int rows = pstmt.executeUpdate();
-            LOGGER.info("Saved FirstStage result for patient " + patientId);
-            return rows > 0;
-        }
+        return patientRepository.saveFirstStageResult(patientId, treatment);
     }
 
     /**
@@ -273,21 +223,6 @@ public class TreatmentService {
         if (treatment.size() < TREATMENT_VALUES_COUNT) {
             throw new IllegalArgumentException("Treatment must have " + TREATMENT_VALUES_COUNT + " values");
         }
-
-        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(INSERT_SECOND_STAGE)) {
-
-            pstmt.setInt(1, patientId);
-            for (int i = 0; i < TREATMENT_VALUES_COUNT; i++) {
-                pstmt.setDouble(i + 2, treatment.get(i));
-            }
-            pstmt.setString(11, timestamp);
-
-            int rows = pstmt.executeUpdate();
-            LOGGER.info("Saved SecondStage result for patient " + patientId);
-            return rows > 0;
-        }
+        return patientRepository.saveSecondStageResult(patientId, treatment);
     }
 }

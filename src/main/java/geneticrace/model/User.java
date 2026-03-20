@@ -10,7 +10,7 @@ package geneticrace.model;
 public record User(int id, String username, String realName, String role, String passwordHash) {
 
     public boolean needsPasswordMigration() {
-        return passwordHash == null || passwordHash.isBlank() || !passwordHash.startsWith("$2a$");
+        return passwordHash == null || passwordHash.isBlank() || !passwordHash.startsWith("$2");
     }
 
     public boolean isAdmin() {

@@ -4,7 +4,6 @@
 
 package geneticrace.controller;
 
-import geneticrace.service.LoginService;
 import geneticrace.session.SessionManager;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -124,7 +123,7 @@ public class MainMenuController {
     public void handleLogout() {
         LOGGER.info("User logging out");
 
-        new LoginService().logout();
+        SessionManager.getInstance().logout();
 
         try {
             Stage currentStage = (Stage) logoutBtn.getScene().getWindow();

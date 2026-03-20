@@ -11,8 +11,8 @@ class SessionManagerTest {
 
     @BeforeEach
     void setUp() {
+        SessionManager.resetInstance();
         session = SessionManager.getInstance();
-        session.logout(); // Reset state between tests
     }
 
     @Test

@@ -62,13 +62,13 @@ public class TreatmentController {
             progressIndicator.setVisible(false);
             currentResult = task.getValue();
 
-            if (currentResult.isSuccess()) {
+            if (currentResult instanceof TreatmentResult.Success success) {
                 statusLabel.setText("Розрахунок завершено");
-                resultArea.setText(formatResult(currentResult));
+                resultArea.setText(formatResult(success));
                 saveBtn.setDisable(false);
-            } else {
-                statusLabel.setText("Помилка: " + currentResult.errorType);
-                resultArea.setText(currentResult.error);
+            } else if (currentResult instanceof TreatmentResult.Failure failure) {
+                statusLabel.setText("Помилка: " + failure.errorType());
+                resultArea.setText(failure.message());
             }
         });
 
@@ -83,16 +83,16 @@ public class TreatmentController {
         new Thread(task, "treatment-calc").start();
     }
 
-    private String formatResult(TreatmentResult result) {
+    private String formatResult(TreatmentResult.Success result) {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < result.treatments.size(); i++) {
+        for (int i = 0; i < result.treatments().size(); i++) {
             sb.append("Варіант ").append(i + 1).append(":\n");
-            List<Double> treatment = result.treatments.get(i);
+            List<Double> treatment = result.treatments().get(i);
             for (int j = 0; j < treatment.size(); j++) {
                 sb.append(String.format("  x%d = %.4f%n", j + 1, treatment.get(j)));
             }
-            if (result.complications != null && i < result.complications.size()) {
-                sb.append("  Ускладнення: ").append(result.complications.get(i)).append("\n");
+            if (result.complications() != null && i < result.complications().size()) {
+                sb.append("  Ускладнення: ").append(result.complications().get(i)).append("\n");
             }
             sb.append("\n");
         }
@@ -101,10 +101,10 @@ public class TreatmentController {
 
     @FXML
     public void handleSave() {
-        if (currentResult == null || !currentResult.isSuccess()) return;
+        if (!(currentResult instanceof TreatmentResult.Success success)) return;
 
         int patientId = SessionManager.getInstance().getCurrentPatientId();
-        List<Double> treatment = currentResult.treatments.get(0);
+        List<Double> treatment = success.treatments().get(0);
 
         try {
             boolean saved;
