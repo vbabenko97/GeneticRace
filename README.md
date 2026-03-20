@@ -166,7 +166,9 @@ Full paper text: [docs/paper.md](docs/paper.md)
 
 ## Acknowledgments
 
-I am grateful to [Volodymyr Anatoliyovych Pavlov](https://bmc.fbmi.kpi.ua/en/1806/) (Павлов Володимир Анатолійович), PhD, Associate Professor, Department of Biomedical Cybernetics, Igor Sikorsky Kyiv Polytechnic Institute, for early conceptual discussions on transitioning from population-level treatment models toward individualized formulations using patient-specific constants.
+I would like to thank Olena Kostiantynivna Horodetska ([Nosovets](https://www.linkedin.com/in/olena-nosovets-a9424b158/)), PhD, my bachelor's thesis supervisor, for her academic guidance during this work and for facilitating access to clinical data used in this project.
+
+I also thank [Volodymyr Anatoliyovych Pavlov](https://bmc.fbmi.kpi.ua/en/1806/), PhD, Associate Professor at the Department of Biomedical Cybernetics, Igor Sikorsky Kyiv Polytechnic Institute, for conceptual discussions related to individualized modeling and patient-specific parameterization in this problem domain.
 
 ## License
 
