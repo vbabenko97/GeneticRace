@@ -101,4 +101,58 @@ class LoginServiceTest {
         // Should not throw
         loginService.clearAttempts("nonexistent");
     }
+
+    // Exact boundary tests
+
+    @Test
+    void lockoutAtExactBoundaryStillLocked() {
+        // Set timestamp exactly at lockout duration (uses >, not >=)
+        loginService.attemptTracker.put("testuser", new long[]{
+            LoginService.MAX_ATTEMPTS,
+            System.currentTimeMillis() - LoginService.LOCKOUT_DURATION_MS
+        });
+
+        assertTrue(loginService.isLockedOut("testuser"),
+            "Lockout at exact boundary should still be locked (> not >=)");
+    }
+
+    @Test
+    void lockoutOneMilliPastBoundaryIsExpired() {
+        loginService.attemptTracker.put("testuser", new long[]{
+            LoginService.MAX_ATTEMPTS,
+            System.currentTimeMillis() - LoginService.LOCKOUT_DURATION_MS - 1
+        });
+
+        assertFalse(loginService.isLockedOut("testuser"));
+    }
+
+    @Test
+    void recordFailedAttemptAtExactBoundaryDoesNotReset() {
+        // At exact boundary, lockout is still active — attempt should increment, not reset
+        loginService.attemptTracker.put("testuser", new long[]{
+            LoginService.MAX_ATTEMPTS,
+            System.currentTimeMillis() - LoginService.LOCKOUT_DURATION_MS
+        });
+
+        loginService.recordFailedAttempt("testuser");
+
+        long[] entry = loginService.attemptTracker.get("testuser");
+        assertNotNull(entry);
+        assertEquals(LoginService.MAX_ATTEMPTS + 1, entry[0],
+            "At exact boundary lockout hasn't expired, so count should increment");
+    }
+
+    @Test
+    void recordFailedAttemptAfterExpiredLockoutResetsToOne() {
+        loginService.attemptTracker.put("testuser", new long[]{
+            LoginService.MAX_ATTEMPTS,
+            System.currentTimeMillis() - LoginService.LOCKOUT_DURATION_MS - 1
+        });
+
+        loginService.recordFailedAttempt("testuser");
+
+        long[] entry = loginService.attemptTracker.get("testuser");
+        assertNotNull(entry);
+        assertEquals(1, entry[0], "After expired lockout, counter should reset to 1");
+    }
 }

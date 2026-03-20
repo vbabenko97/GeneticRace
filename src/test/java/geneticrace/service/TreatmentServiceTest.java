@@ -136,6 +136,50 @@ class TreatmentServiceTest {
         assertEquals(2.0, service.parseSecondStageValue("Так"));
     }
 
+    // Cyrillic edge cases — ensure no silent behavior drift
+
+    @Test
+    void parseFirstStageValueRejectsLatinLookalikes() {
+        // Latin "T" looks like Cyrillic "Т" but is a different codepoint
+        assertThrows(NumberFormatException.class,
+            () -> service.parseFirstStageValue("Tak"));
+    }
+
+    @Test
+    void parseSecondStageValueRejectsLatinLookalikes() {
+        assertThrows(NumberFormatException.class,
+            () -> service.parseSecondStageValue("Hi"));
+    }
+
+    @Test
+    void parseFirstStageValueLowercaseCyrillicFallsThrough() {
+        // "так" (lowercase) is not "Так" — should fall through to parseDouble and fail
+        assertThrows(NumberFormatException.class,
+            () -> service.parseFirstStageValue("так"));
+    }
+
+    @Test
+    void parseSecondStageValueLowercaseCyrillicFallsThrough() {
+        assertThrows(NumberFormatException.class,
+            () -> service.parseSecondStageValue("ні"));
+    }
+
+    @Test
+    void parseFirstStageValueNumericFallbackWithLeadingZero() {
+        assertEquals(0.5, service.parseFirstStageValue("0.5"), 0.001);
+    }
+
+    @Test
+    void parseSecondStageValueNumericFallbackNegative() {
+        assertEquals(-1.0, service.parseSecondStageValue("-1.0"), 0.001);
+    }
+
+    @Test
+    void parseFirstStageValueUnicodeThinSpaceTrimmed() {
+        // Tab-padded value should be trimmed and matched
+        assertEquals(1.0, service.parseFirstStageValue("\tТак\t"));
+    }
+
     // calculateFirstStage tests
 
     @Test

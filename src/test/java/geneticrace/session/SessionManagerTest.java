@@ -108,6 +108,30 @@ class SessionManagerTest {
     }
 
     @Test
+    void checkSessionValidReturnsTrueAtExactBoundary() {
+        session.login(1, "admin", "Адміністратор", "Admin");
+        // Set activity time exactly at timeout boundary (uses >, not >=)
+        session.setLastActivityTime(
+            System.currentTimeMillis() - SessionManager.SESSION_TIMEOUT_MS
+        );
+
+        assertTrue(session.checkSessionValid(),
+            "Session at exact timeout boundary should still be valid (> not >=)");
+        assertTrue(session.isLoggedIn());
+    }
+
+    @Test
+    void checkSessionValidReturnsFalseOneMilliPastBoundary() {
+        session.login(1, "admin", "Адміністратор", "Admin");
+        session.setLastActivityTime(
+            System.currentTimeMillis() - SessionManager.SESSION_TIMEOUT_MS - 1
+        );
+
+        assertFalse(session.checkSessionValid());
+        assertFalse(session.isLoggedIn());
+    }
+
+    @Test
     void touchSessionRefreshesActivityTime() {
         session.login(1, "admin", "Адміністратор", "Admin");
         long before = session.getLastActivityTime();

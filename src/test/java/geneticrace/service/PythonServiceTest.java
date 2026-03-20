@@ -85,4 +85,53 @@ class PythonServiceTest {
         assertFalse(result.isSuccess());
         assertEquals("Expected 12 input values, got 9", result.error);
     }
+
+    // Additional boundary tests
+
+    @Test
+    void parseOutputPreservesStderrInErrorMessage() {
+        PythonServicePort.GaResult result = pythonService.parseOutput(
+            "", "Traceback: something broke\n", 1);
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.error.contains("Traceback: something broke"));
+    }
+
+    @Test
+    void parseOutputTrimsStderrWhitespace() {
+        PythonServicePort.GaResult result = pythonService.parseOutput(
+            "", "  error with spaces  \n", 1);
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.error.contains("error with spaces"));
+    }
+
+    @Test
+    void parseOutputMalformedJsonWithExitCodeZero() {
+        // Script exits 0 but produces garbage stdout
+        PythonServicePort.GaResult result = pythonService.parseOutput(
+            "{truncated", "", 0);
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.error.contains("Failed to parse output"));
+    }
+
+    @Test
+    void parseOutputNullStdoutWithExitCodeZero() {
+        PythonServicePort.GaResult result = pythonService.parseOutput("null", "", 0);
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.error.contains("no output"));
+    }
+
+    @Test
+    void parseOutputPartialJsonMissingTreatments() {
+        String json = "{\"complications\":[1,1,1,1,1,1,1,1,1]}";
+
+        PythonServicePort.GaResult result = pythonService.parseOutput(json, "", 0);
+
+        // Parsed successfully by Gson, but treatments is null → isSuccess returns false
+        assertNull(result.treatments);
+        assertFalse(result.isSuccess());
+    }
 }

@@ -13,6 +13,7 @@ import javafx.concurrent.Task;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -179,31 +180,43 @@ public class TreatmentService {
     }
 
     /**
-     * Converts Ukrainian Yes/No to numeric for FirstStage GMDH models.
-     * Encoding: Так=1.0, Ні=2.0 (matches training data encoding).
+     * Encoding of Ukrainian Yes/No to numeric values for GMDH models.
+     * The reversal between stages matches the original GMDH training data and must not be "normalized."
      */
-    double parseFirstStageValue(String value) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Blank or null clinical value in FirstStage data");
+    enum StageEncoding {
+        // FirstStage: Так=1.0, Ні=2.0
+        FIRST_STAGE("FirstStage", Map.of("Так", 1.0, "Ні", 2.0)),
+        // SecondStage: Ні=1.0, Так=2.0 (intentionally reversed)
+        SECOND_STAGE("SecondStage", Map.of("Ні", 1.0, "Так", 2.0));
+
+        private final String label;
+        private final Map<String, Double> mapping;
+
+        StageEncoding(String label, Map<String, Double> mapping) {
+            this.label = label;
+            this.mapping = mapping;
         }
-        String trimmed = value.trim();
-        if ("Так".equals(trimmed)) return 1.0;
-        if ("Ні".equals(trimmed)) return 2.0;
-        return Double.parseDouble(trimmed);
+
+        Double lookup(String trimmed) {
+            return mapping.get(trimmed);
+        }
     }
 
-    /**
-     * Converts Ukrainian Yes/No to numeric for SecondStage GMDH models.
-     * Encoding: Ні=1.0, Так=2.0 (NOTE: reversed from FirstStage, matches training data).
-     */
+    double parseFirstStageValue(String value) {
+        return parseStageValue(value, StageEncoding.FIRST_STAGE);
+    }
+
     double parseSecondStageValue(String value) {
+        return parseStageValue(value, StageEncoding.SECOND_STAGE);
+    }
+
+    private double parseStageValue(String value, StageEncoding encoding) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Blank or null clinical value in SecondStage data");
+            throw new IllegalArgumentException("Blank or null clinical value in " + encoding.label + " data");
         }
         String trimmed = value.trim();
-        if ("Ні".equals(trimmed)) return 1.0;
-        if ("Так".equals(trimmed)) return 2.0;
-        return Double.parseDouble(trimmed);
+        Double mapped = encoding.lookup(trimmed);
+        return mapped != null ? mapped : Double.parseDouble(trimmed);
     }
 
     /**

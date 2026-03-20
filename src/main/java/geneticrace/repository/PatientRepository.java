@@ -169,38 +169,38 @@ public class PatientRepository implements PatientDataPort {
     private FirstStageData mapFirstStageData(ResultSet rs, int patientId) throws SQLException {
         Patient patient = mapPatient(rs);
 
-        int x101 = rs.getInt("x101");
-        if (rs.wasNull()) throw new SQLException("Column x101 is NULL for patient " + patientId);
-
-        double x102 = rs.getDouble("x102");
-        if (rs.wasNull()) throw new SQLException("Column x102 is NULL for patient " + patientId);
-
-        double x103 = rs.getDouble("x103");
-        if (rs.wasNull()) throw new SQLException("Column x103 is NULL for patient " + patientId);
-
-        int x104 = rs.getInt("x104");
-        if (rs.wasNull()) throw new SQLException("Column x104 is NULL for patient " + patientId);
-
-        int x105 = rs.getInt("x105");
-        if (rs.wasNull()) throw new SQLException("Column x105 is NULL for patient " + patientId);
-
-        double x106 = rs.getDouble("x106");
-        if (rs.wasNull()) throw new SQLException("Column x106 is NULL for patient " + patientId);
-
-        double x107 = rs.getDouble("x107");
-        if (rs.wasNull()) throw new SQLException("Column x107 is NULL for patient " + patientId);
-
-        double x108 = rs.getDouble("x108");
-        if (rs.wasNull()) throw new SQLException("Column x108 is NULL for patient " + patientId);
-
-        double x109 = rs.getDouble("x109");
-        if (rs.wasNull()) throw new SQLException("Column x109 is NULL for patient " + patientId);
+        int x101 = mapNonNull(rs, "x101", Integer.class, patientId);
+        double x102 = mapNonNull(rs, "x102", Double.class, patientId);
+        double x103 = mapNonNull(rs, "x103", Double.class, patientId);
+        int x104 = mapNonNull(rs, "x104", Integer.class, patientId);
+        int x105 = mapNonNull(rs, "x105", Integer.class, patientId);
+        double x106 = mapNonNull(rs, "x106", Double.class, patientId);
+        double x107 = mapNonNull(rs, "x107", Double.class, patientId);
+        double x108 = mapNonNull(rs, "x108", Double.class, patientId);
+        double x109 = mapNonNull(rs, "x109", Double.class, patientId);
 
         return new FirstStageData(
             patient, x101, x102, x103, x104, x105,
             x106, x107, x108, x109,
             rs.getString("x110"), rs.getString("x111"), rs.getString("x112")
         );
+    }
+
+    private <T extends Number> T mapNonNull(ResultSet rs, String column, Class<T> type, int patientId)
+            throws SQLException {
+        Object value;
+        if (type == Integer.class) {
+            value = rs.getInt(column);
+        } else if (type == Double.class) {
+            value = rs.getDouble(column);
+        } else {
+            throw new IllegalArgumentException("Unsupported numeric type: " + type.getSimpleName());
+        }
+
+        if (rs.wasNull()) {
+            throw new SQLException("Column " + column + " is NULL for patient " + patientId);
+        }
+        return type.cast(value);
     }
 
     private SecondStageData mapSecondStageData(ResultSet rs, Patient patient) throws SQLException {

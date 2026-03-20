@@ -66,3 +66,9 @@ docs/paper.pdf
 # Claude
 .claude/
 .mcp.json
+
+# BMad framework
+_bmad/
+_bmad-output/
+
+prompts/

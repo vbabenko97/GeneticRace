@@ -8,9 +8,6 @@ SecondStage genetic algorithm for finding conservative (medication) treatment st
 Uses GMDH classification models and AHP optimization.
 """
 
-import argparse
-import json
-import sys
 from random import randint
 
 import ga_core
@@ -92,24 +89,14 @@ def calculate_perfect_value(x_list, coeff_list):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SecondStage GA for medication optimization")
-    parser.add_argument("--input", type=str, required=True, help="JSON input with xList")
-    args = parser.parse_args()
-
-    try:
-        data = json.loads(args.input)
-        x_list = data["xList"]
-
-        if len(x_list) != 9:
-            raise ValueError(f"Expected 9 input values, got {len(x_list)}")
-
-        result = ga_core.run_ga(
-            x_list, random_solution, calculate_criterions, calculate_perfect_value, logger)
-        print(json.dumps(result))
-
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
+    ga_core.run_stage_cli(
+        "SecondStage GA for medication optimization",
+        9,
+        random_solution,
+        calculate_criterions,
+        calculate_perfect_value,
+        logger,
+    )
 
 
 if __name__ == "__main__":

@@ -8,12 +8,12 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import geneticrace.config.AppConfig;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,10 +31,16 @@ public class PythonService implements PythonServicePort {
     private static final int TIMEOUT_SECONDS = 120;
 
     private final Path scriptsDirectory;
+    private final ProcessRunner processRunner;
     private boolean scriptsExtracted = false;
 
     public PythonService() {
-        this.scriptsDirectory = AppConfig.getPythonScriptsDirectory();
+        this(AppConfig.getPythonScriptsDirectory(), new ProcessRunner());
+    }
+
+    PythonService(Path scriptsDirectory, ProcessRunner processRunner) {
+        this.scriptsDirectory = scriptsDirectory;
+        this.processRunner = processRunner;
     }
 
     /**
@@ -80,60 +86,20 @@ public class PythonService implements PythonServicePort {
 
         String pythonExe = AppConfig.getPythonExecutable();
 
-        ProcessBuilder pb = new ProcessBuilder(
-            pythonExe,
-            scriptPath.toString(),
-            "--input", jsonInput
-        );
-
-        pb.redirectErrorStream(false);
-
         LOGGER.info("Executing script: " + scriptName);
 
-        Process process = pb.start();
+        ProcessRunner.Result result = processRunner.run(
+            List.of(pythonExe, scriptPath.toString(), "--input", jsonInput),
+            TIMEOUT_SECONDS
+        );
 
-        // Read stderr in a separate thread to prevent deadlock:
-        // if both stdout and stderr buffers fill, the process blocks and
-        // sequential reads on the Java side would also block.
-        StringBuilder stderr = new StringBuilder();
-        Thread stderrReader = new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getErrorStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    stderr.append(line).append("\n");
-                }
-            } catch (IOException e) {
-                LOGGER.log(Level.FINE, "Error reading script stderr", e);
-            }
-        }, "stderr-reader");
-        stderrReader.setDaemon(true);
-        stderrReader.start();
-
-        // Read stdout on the calling thread
-        StringBuilder stdout = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                stdout.append(line);
-            }
-        }
-
-        boolean completed = process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-        if (!completed) {
-            process.destroyForcibly();
-            stderrReader.interrupt();
+        if (result.timedOut()) {
             PythonServicePort.GaResult error = new PythonServicePort.GaResult();
             error.error = "Script timed out after " + TIMEOUT_SECONDS + " seconds";
             return error;
         }
 
-        // Wait for stderr reader to finish (it should be done since process exited)
-        stderrReader.join(1000);
-
-        return parseOutput(stdout.toString(), stderr.toString(), process.exitValue());
+        return parseOutput(result.stdout(), result.stderr(), result.exitCode());
     }
 
     /**

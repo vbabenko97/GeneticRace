@@ -74,6 +74,10 @@ src/test/java/geneticrace/
   session/        SessionManager tests
 ```
 
+## Refactoring Notes
+
+- [March 2026 refactoring notes](docs/refactoring-march-2026.md) documents the repository, service, controller, Python IPC, and test-suite cleanups that preserved the existing clinical behavior.
+
 ## Prerequisites
 
 - **Java 17+**

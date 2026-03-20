@@ -5,7 +5,7 @@
 package geneticrace.controller;
 
 import geneticrace.model.Patient;
-import geneticrace.repository.PatientRepository;
+import geneticrace.service.PatientService;
 import geneticrace.session.SessionManager;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -30,12 +30,12 @@ public class PatientChooserController {
     @FXML
     private Label statusLabel;
 
-    private final PatientRepository repository = new PatientRepository();
+    private final PatientService patientService = new PatientService();
 
     @FXML
     public void initialize() {
         try {
-            List<Patient> patients = repository.getAccessiblePatients();
+            List<Patient> patients = patientService.getAccessiblePatients();
             patientList.setItems(FXCollections.observableArrayList(patients));
             statusLabel.setText("Знайдено пацієнтів: " + patients.size());
         } catch (SQLException e) {

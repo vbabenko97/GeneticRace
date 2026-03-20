@@ -9,11 +9,14 @@ and the main GA loop.  Stage-specific logic (GMDH models, parameter ranges) live
 in FirstStage.py / SecondStage.py and is injected via function parameters.
 """
 
+import argparse
 import copy
+import json
 import logging
 import logging.handlers
 import math
 import os
+import sys
 from random import choices
 
 
@@ -220,3 +223,28 @@ def run_ga(x_list, random_solution_fn, calculate_criterions_fn,
         "treatments": treatment_list[:5],
         "complications": complication_list[0] if complication_list else []
     }
+
+
+# --- CLI entry point shared by stage scripts ---
+
+def run_stage_cli(description, expected_input_length, random_solution_fn,
+                  calculate_criterions_fn, calculate_perfect_value_fn, logger):
+    """CLI boilerplate shared by FirstStage and SecondStage scripts."""
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument("--input", type=str, required=True, help="JSON input with xList")
+    args = parser.parse_args()
+
+    try:
+        data = json.loads(args.input)
+        x_list = data["xList"]
+
+        if len(x_list) != expected_input_length:
+            raise ValueError(f"Expected {expected_input_length} input values, got {len(x_list)}")
+
+        result = run_ga(x_list, random_solution_fn, calculate_criterions_fn,
+                        calculate_perfect_value_fn, logger)
+        print(json.dumps(result))
+
+    except Exception as e:
+        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        sys.exit(1)
