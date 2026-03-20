@@ -166,7 +166,9 @@ Full paper text: [docs/paper.md](docs/paper.md)
 
 ## Acknowledgments
 
-I would like to thank Olena Kostiantynivna Horodetska ([Nosovets](https://www.linkedin.com/in/olena-nosovets-a9424b158/)), PhD, my bachelor's thesis supervisor, for her academic guidance during this work and for facilitating access to clinical data used in this project.
+I would like to thank [Anastasiia Dydyk](https://www.linkedin.com/in/anastasiia-dydyk/), my co-author on the bachelor's thesis that this project originated from, for her contribution to the early development of this work.
+
+I also thank Olena Kostiantynivna Horodetska ([Nosovets](https://www.linkedin.com/in/olena-nosovets-a9424b158/)), PhD, our bachelor's thesis supervisor, for her academic guidance and for facilitating access to clinical data used in this project.
 
 I also thank [Volodymyr Anatoliyovych Pavlov](https://bmc.fbmi.kpi.ua/en/1806/), PhD, Associate Professor at the Department of Biomedical Cybernetics, Igor Sikorsky Kyiv Polytechnic Institute, for conceptual discussions related to individualized modeling and patient-specific parameterization in this problem domain.
 
